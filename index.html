@@ -74,6 +74,17 @@
       transform:scaleX(-1);
     }
 
+    /* 手势光标（pinch 点） */
+    #cursor{
+      position:fixed;left:0;top:0;z-index:15;pointer-events:none;
+      width:18px;height:18px;border-radius:50%;
+      border:1px solid rgba(255,255,255,.85);
+      box-shadow:0 0 0 6px rgba(255,220,140,.10), 0 0 18px rgba(255,210,140,.55);
+      transform:translate(-999px,-999px);
+      background:radial-gradient(circle at 35% 35%, rgba(255,255,255,.85), rgba(255,210,120,.25) 55%, rgba(255,200,110,0) 70%);
+      opacity:.95;
+    }
+
     #audioGate,#camGate{
       position:fixed;inset:0;z-index:21;display:none;align-items:center;justify-content:center;
       background:radial-gradient(ellipse at center, rgba(36,22,22,.55), rgba(7,6,10,.90));
@@ -98,6 +109,7 @@
 <body>
   <canvas id="three"></canvas>
   <div id="vignette"></div>
+  <div id="cursor"></div>
   <div id="errorBox"></div>
 
   <div id="loading">
@@ -140,7 +152,7 @@
 
   <div id="hint">
     <div><b>手势</b>：握拳=回合拢；五指张开=散开；<b>散开态保持五指张开</b>→移动/手腕旋转=旋转视角；拇指+食指 pinch=抓取照片放大；松开=回原位。</div>
-    <div style="opacity:.85;margin-top:6px;">提示：GitHub Pages 必须 HTTPS 才能开摄像头；若更新后仍旧是旧版效果，试试在链接后加 <b>?v=2</b> 强制刷新缓存。</div>
+    <div style="opacity:.85;margin-top:6px;">提示：GitHub Pages 必须 HTTPS 才能开摄像头；若更新后仍旧是旧版效果，试试在链接后加 <b>?v=4</b> 强制刷新缓存。</div>
   </div>
 
   <div id="audioGate">
@@ -205,7 +217,7 @@
     })();
 
     /********************
-     * Audio: smooth procedural Xmas (Jingle Bells-like)
+     * Audio: smooth procedural Xmas
      ********************/
     class AudioManager{
       constructor(){ this.ctx=null; this.master=null; this.musicBus=null; this.ambBus=null;
@@ -358,7 +370,7 @@
     renderer.setPixelRatio(Math.min(devicePixelRatio, isMobileLike?1.6:2));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure=1.72; // 更暖更亮
+    renderer.toneMappingExposure=1.72;
 
     const scene=new THREE.Scene();
     scene.background=new THREE.Color(0x07060a);
@@ -366,14 +378,12 @@
 
     const camera=new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 120);
 
-    // warm cinematic lighting
     scene.add(new THREE.AmbientLight(0xffe6cf, 0.44));
     scene.add(new THREE.HemisphereLight(0xffddb3, 0x141028, 1.28));
     const key=new THREE.PointLight(0xffd1a6, 3.2, 34); key.position.set(3.2,6.2,6.0); scene.add(key);
     const fill=new THREE.PointLight(0xffcaa0, 1.05, 26); fill.position.set(-5.2,2.8,3.4); scene.add(fill);
     const rim=new THREE.PointLight(0xfff0d0, 1.65, 30); rim.position.set(0.0,6.4,-6.0); scene.add(rim);
 
-    // post: bloom + bokeh
     let composer=null, bloomPass=null, bokehPass=null;
     try{
       composer=new THREE.EffectComposer(renderer);
@@ -398,21 +408,18 @@
     }
     applyLayoutByAspect();
 
-    // ground
     const ground=new THREE.Mesh(
       new THREE.CircleGeometry(6.2, 80),
       new THREE.MeshBasicMaterial({color:0x15112a,transparent:true,opacity:0.42})
     );
     ground.rotation.x=-Math.PI/2; ground.position.y=-0.06; treeGroup.add(ground);
 
-    // trunk
     const trunk=new THREE.Mesh(
       new THREE.CylinderGeometry(0.26,0.40,1.45,22),
       new THREE.MeshStandardMaterial({color:0x3a2a20,roughness:0.95,metalness:0.0})
     );
     trunk.position.y=0.62; treeGroup.add(trunk);
 
-    // star (bigger angles via 5-point shape)
     function makeStarMesh(){
       const outer=0.68, inner=0.10;
       const shape=new THREE.Shape();
@@ -451,7 +458,9 @@
     starGlow.scale.set(2.9,2.9,1);
     treeGroup.add(starGlow);
 
-    // needles points
+    /********************
+     * Needles
+     ********************/
     let needlePoints=null, needleCount=isMobileLike?10000:16000;
     function buildNeedles(count){
       const geo=new THREE.BufferGeometry();
@@ -517,7 +526,9 @@
     }
     rebuildNeedles();
 
-    // ornaments (only bright gold & bright red)
+    /********************
+     * Ornaments (only bright gold & red)
+     ********************/
     const tmpObj=new THREE.Object3D();
     function randInSphere(r){
       const u=Math.random(), v=Math.random();
@@ -565,17 +576,19 @@
     }
 
     const goldBallMat=new THREE.MeshStandardMaterial({
-      color:COLORS.goldBright, metalness:1.0, roughness:0.10,
+      color:new THREE.Color("#ffd86b"), metalness:1.0, roughness:0.10,
       emissive:new THREE.Color(0x3a1a00), emissiveIntensity:0.48
     });
     const redBallMat=new THREE.MeshStandardMaterial({
-      color:COLORS.redBright, metalness:0.42, roughness:0.20,
+      color:new THREE.Color("#ff1c2b"), metalness:0.42, roughness:0.20,
       emissive:new THREE.Color(0x3a0000), emissiveIntensity:0.34
     });
     const ballsGold=buildInstancedBalls(78, goldBallMat);
     const ballsRed =buildInstancedBalls(78, redBallMat);
 
-    // Helix: standard in fold, flowing in scatter
+    /********************
+     * Helix (standard in fold, flowing in scatter)
+     ********************/
     const helixGroup=new THREE.Group(); treeGroup.add(helixGroup);
     function buildHelix(){
       const pts=[];
@@ -705,7 +718,7 @@
         const img=new THREE.Mesh(geo,imgMat); img.userData.pickParentIndex=i;
 
         const frameMat=new THREE.MeshStandardMaterial({
-          color:COLORS.goldBright, metalness:1.0, roughness:0.14,
+          color:new THREE.Color("#ffd86b"), metalness:1.0, roughness:0.14,
           emissive:new THREE.Color(0x3a1a00), emissiveIntensity:0.20
         });
         const frame=new THREE.Mesh(geo,frameMat);
@@ -797,6 +810,7 @@
     let targetMode=MODE.FOLD;
     const modePill=$("modePill");
 
+    let treeScale2=1.0;
     let foldMix=0, foldVel=0;
     let focusedPhoto=null;
     let photoZoom=0, photoZoomVel=0;
@@ -820,58 +834,66 @@
       return [x,v];
     }
 
-    function updatePhotos(mix,t,dt){
-      for(const g of photoMeshes){
-        const f=g.userData.folded, s=g.userData.scatter, seed=g.userData.driftSeed;
-
-        if(targetMode===MODE.PHOTO && focusedPhoto===g){
-          const depth=2.75;
-          const forward=camera.getWorldDirection(new THREE.Vector3());
-          const targetPos=camera.position.clone().add(forward.multiplyScalar(depth));
-          g.position.lerp(targetPos, 1 - Math.exp(-16*dt));
-          g.quaternion.copy(camera.quaternion);
-
-          const vFov=THREE.MathUtils.degToRad(camera.fov);
-          const visibleH=2*Math.tan(vFov/2)*depth;
-          const visibleW=visibleH*camera.aspect;
-
-          const frame=g.children[0];
-          const frameW=frame.scale.x, frameH=frame.scale.y;
-
-          const safeW=visibleW*0.78, safeH=visibleH*0.72;
-          const fitScale=Math.min(safeW/frameW, safeH/frameH);
-          const base=g.userData.baseScale;
-          const targetScale=lerp(base, fitScale, photoZoom);
-
-          g.scale.lerp(new THREE.Vector3(targetScale,targetScale,targetScale), 1 - Math.exp(-14*dt));
-          continue;
-        }
-
-        let p=new THREE.Vector3(lerp(f.x,s.x,mix), lerp(f.y,s.y,mix), lerp(f.z,s.z,mix));
-        p.x += Math.sin(t*0.8+seed)*0.12*mix;
-        p.y += Math.sin(t*0.65+seed*1.3)*0.08*mix;
-        p.z += Math.cos(t*0.75+seed*0.9)*0.12*mix;
-
-        g.position.copy(p);
-        g.lookAt(camera.position);
-
-        const baseS=g.userData.baseScale;
-        g.scale.lerp(new THREE.Vector3(baseS,baseS,baseS), 1 - Math.exp(-12*dt));
-      }
-    }
-
     /********************
-     * Raycast pick by pinch screen pos
+     * Picking: raycast + nearest-on-screen fallback + auto mirror
      ********************/
     const raycaster=new THREE.Raycaster();
     const ndc=new THREE.Vector2();
-    function pickPhotoByScreen01(x01,y01){
+    const tmpV=new THREE.Vector3();
+    const cursor=$("cursor");
+
+    function setCursor01(x01,y01, visible=true){
+      if(!visible){ cursor.style.transform="translate(-999px,-999px)"; return; }
+      cursor.style.transform = `translate(${(x01*innerWidth-9)}px, ${(y01*innerHeight-9)}px)`;
+    }
+
+    function rayPickAt01(x01,y01){
       ndc.set(x01*2-1, -(y01*2-1));
       raycaster.setFromCamera(ndc,camera);
       const hits=raycaster.intersectObjects(interactiveMeshes,false);
       if(!hits.length) return null;
       const idx=hits[0].object?.userData?.pickParentIndex;
       return (typeof idx==="number") ? (photoMeshes[idx]||null) : null;
+    }
+
+    function nearestPhotoOnScreen(x01,y01){
+      const xN=x01*2-1;
+      const yN=-(y01*2-1);
+      let best=null, bestD=1e9;
+
+      for(const g of photoMeshes){
+        const wp=g.getWorldPosition(tmpV);
+        const p=wp.clone().project(camera);
+        // 只考虑在屏幕范围内、且在相机前方的投影点
+        if(p.z<-1 || p.z>1) continue;
+        const dx=p.x-xN, dy=p.y-yN;
+        const d=dx*dx+dy*dy;
+        if(d<bestD){ bestD=d; best=g; }
+      }
+
+      const thr = (isMobileLike?0.30:0.24); // NDC 半径阈值
+      return (best && bestD < thr*thr) ? best : null;
+    }
+
+    function pickPhotoByScreen01(x01,y01){
+      // 确保世界矩阵是最新的（手势回调可能早于渲染）
+      scene.updateMatrixWorld(true);
+      camera.updateMatrixWorld(true);
+
+      // 1) raycast 先试正常 x
+      let hit = rayPickAt01(x01,y01);
+      if(hit) return hit;
+
+      // 2) 再试镜像 x（解决不同浏览器/前摄镜像差异）
+      hit = rayPickAt01(1-x01,y01);
+      if(hit) return hit;
+
+      // 3) 屏幕最近邻兜底（哪怕 raycast miss 也能按“当前位置最接近的照片”抓）
+      hit = nearestPhotoOnScreen(x01,y01);
+      if(hit) return hit;
+
+      hit = nearestPhotoOnScreen(1-x01,y01);
+      return hit || null;
     }
 
     /********************
@@ -907,10 +929,9 @@
     let hands=null;
     let camOn=false;
     let stream=null;
-    let busy=false;      // <<< 关键：防并发
+    let busy=false;
     let rafId=0;
 
-    // gesture state
     let pinchActive=false;
     let pinchHold=0, pinchRelease=0;
     let openHold=0, fistHold=0;
@@ -1007,7 +1028,7 @@
         showError("摄像头只能在 HTTPS 或 localhost 下使用。请用 GitHub Pages 的 https 链接打开。"); return;
       }
 
-      stopCamera(); // clear
+      stopCamera();
 
       const constraints={
         audio:false,
@@ -1024,7 +1045,6 @@
         video.srcObject=stream;
         await video.play();
 
-        // reset gesture states
         busy=false; pinchActive=false; pinchHold=0; pinchRelease=0;
         openHold=0; fistHold=0; lastWrist=null; lastAngle=null;
 
@@ -1033,12 +1053,9 @@
         camPill.textContent="Gesture: on";
         gesturePill.textContent="识别：运行中…";
 
-        // IMPORTANT: processing loop with busy lock (NO concurrency)
         const loop = async ()=>{
           if(!camOn) return;
           rafId=requestAnimationFrame(loop);
-
-          // video not ready => skip
           if(video.readyState < 2 || video.videoWidth===0 || video.videoHeight===0) return;
           if(busy) return;
 
@@ -1046,14 +1063,13 @@
           try{
             await hands.send({image: video});
           }catch(err){
-            // 如果 still abort：给出更可读的提示
             showError(
               "手势识别引擎崩溃（常见原因：并发喂帧/浏览器 WebAssembly 问题）。\n\n" +
               "当前已使用“busy 锁”避免并发。\n" +
               "若仍出现，请尝试：\n" +
               "1) 换 Chrome/Edge 打开\n" +
               "2) 关闭低电量模式/省电模式\n" +
-              "3) 在链接后加 ?v=3 强制刷新缓存\n\n" +
+              "3) 在链接后加 ?v=4 强制刷新缓存\n\n" +
               "原始错误：\n" + (err?.message||err)
             );
             stopCamera();
@@ -1077,6 +1093,7 @@
       gesturePill.textContent="识别：-";
       gestureDbg.textContent="dbg:-";
       lastWrist=null; lastAngle=null;
+      setCursor01(0,0,false);
       if(rafId) cancelAnimationFrame(rafId);
       rafId=0;
 
@@ -1093,7 +1110,8 @@
       if(!results?.multiHandLandmarks?.length){
         gesturePill.textContent = camOn ? "识别：未检测到手" : "识别：-";
         gestureDbg.textContent = "dbg:nohand";
-        // 丢手：如果在 pinch 中，按松开处理
+        setCursor01(0,0,false);
+
         if(pinchActive){
           pinchRelease++;
           if(pinchRelease>=2){
@@ -1108,6 +1126,10 @@
 
       const lm=results.multiHandLandmarks[0];
       const g=classifyGesture(lm);
+
+      // 显示 pinch 光标（就算还没触发抓取，也先让你看到系统理解的 pinch 点）
+      setCursor01(g.pinchPos.x, g.pinchPos.y, true);
+
       gestureDbg.textContent = `dbg: pinch=${g.pinchNorm.toFixed(2)} palm=${g.palmSize.toFixed(3)}`;
 
       let label="-";
@@ -1117,18 +1139,30 @@
         if(g.pinchOn){
           pinchHold++;
           if(pinchHold>=2){
-            pinchActive=true;
             pinchHold=0;
             pinchRelease=0;
-            label="Pinch 抓取";
 
-            const picked=pickPhotoByScreen01(g.pinchPos.x, g.pinchPos.y);
-            focusedPhoto = picked || photoMeshes[0] || null;
-            if(focusedPhoto) setMode(MODE.PHOTO); else setMode(MODE.SCATTER);
+            // ★关键：此处按“屏幕 pinch 点”选当前界面对应照片
+            const picked = pickPhotoByScreen01(g.pinchPos.x, g.pinchPos.y);
+
+            if(picked){
+              pinchActive=true;
+              focusedPhoto=picked;
+              setMode(MODE.PHOTO);
+              label=`Pinch 抓取：#${picked.userData.index+1}`;
+            }else{
+              // 没抓到任何照片：不进入照片态（避免固定抓同一张）
+              pinchActive=false;
+              focusedPhoto=null;
+              setMode(MODE.SCATTER);
+              label="Pinch（未命中照片）";
+            }
+          }else{
+            label="Pinch 准备…";
           }
         }else pinchHold=0;
       }else{
-        label="Pinch 抓取中";
+        label = focusedPhoto ? `Pinch 抓取中：#${focusedPhoto.userData.index+1}` : "Pinch 抓取中";
         if(g.pinchOff){
           pinchRelease++;
           if(pinchRelease>=2){
@@ -1170,7 +1204,6 @@
             const dx=(wrist.x-lastWrist.x);
             const dy=(wrist.y-lastWrist.y);
 
-            // 更“跟手”：dx 的 yaw + 手腕方向变化的 yaw（转一圈跟一圈）
             const moveYaw   = dx * (isMobileLike ? 10.5 : 9.6);
             const movePitch = dy * (isMobileLike ? 8.0 : 7.2);
 
@@ -1180,7 +1213,7 @@
 
             if(lastAngle!==null){
               const dAng=unwrapDeltaAngle(lastAngle, dir);
-              orbitYaw += dAng * 1.05;      // 手腕转一圈≈场景转一圈
+              orbitYaw += dAng * 1.05;
               rollTarget = clamp(dAng, -0.35, 0.35) * 0.35 + dx * 0.18;
             }
           }
@@ -1199,7 +1232,6 @@
       gesturePill.textContent="识别："+label;
     }
 
-    // UI actions
     camBtn.addEventListener("click", ()=>{
       if(!camOn) $("camGate").style.display="flex";
       else stopCamera();
@@ -1224,39 +1256,32 @@
       const dt=clamp(t-tPrev,0.001,0.033);
       tPrev=t;
 
-      // fold mix spring
       const foldTarget = (targetMode===MODE.FOLD) ? 0 : 1;
       [foldMix, foldVel] = springTo(foldMix, foldVel, foldTarget, dt, 18, 8);
 
-      // photo zoom spring
       const zoomTarget = (targetMode===MODE.PHOTO && focusedPhoto) ? 1 : 0;
       [photoZoom, photoZoomVel] = springTo(photoZoom, photoZoomVel, zoomTarget, dt, 26, 12);
       photoZoom=clamp(photoZoom,0,1);
 
-      // rotation smoothing
       rotY = lerp(rotY, targetRotY, 1 - Math.exp(-26*dt));
       rotX = lerp(rotX, targetRotX, 1 - Math.exp(-26*dt));
       rotZ = lerp(rotZ, targetRotZ, 1 - Math.exp(-20*dt));
       treeGroup.rotation.set(rotX, rotY, rotZ);
 
-      // update scene
       updateInstanced(ballsGold, foldMix, t);
       updateInstanced(ballsRed,  foldMix, t);
       updateHelix(foldMix, t, dt);
 
-      // needles shimmer
       if(needlePoints){
         const shimmer=0.9+0.1*Math.sin(t*1.4);
         needlePoints.material.size=0.042+0.012*shimmer;
         needlePoints.material.opacity=0.92+0.08*Math.sin(t*0.80);
       }
 
-      // star glow
       star.rotation.y=t*0.55; star.rotation.x=t*0.30;
       starGlow.material.opacity=0.38+0.12*Math.sin(t*2.0);
       starGlow.scale.set(2.9+0.22*Math.sin(t*1.6), 2.9+0.22*Math.sin(t*1.6), 1);
 
-      // photos
       for(const g of photoMeshes){
         const f=g.userData.folded, s=g.userData.scatter, seed=g.userData.driftSeed;
 
@@ -1280,7 +1305,6 @@
           const targetScale=lerp(base, fitScale, photoZoom);
           g.scale.lerp(new THREE.Vector3(targetScale,targetScale,targetScale), 1 - Math.exp(-14*dt));
 
-          // DOF stronger in photo mode
           if(bokehPass){
             const dist=camera.position.distanceTo(g.getWorldPosition(new THREE.Vector3()));
             bokehPass.materialBokeh.uniforms.focus.value=dist;
@@ -1289,14 +1313,13 @@
           continue;
         }
 
-        // not focused
         let p=new THREE.Vector3(lerp(f.x,s.x,foldMix), lerp(f.y,s.y,foldMix), lerp(f.z,s.z,foldMix));
         p.x += Math.sin(t*0.8+seed)*0.12*foldMix;
         p.y += Math.sin(t*0.65+seed*1.3)*0.08*foldMix;
         p.z += Math.cos(t*0.75+seed*0.9)*0.12*foldMix;
 
         g.position.copy(p);
-        g.lookAt(camera.position);
+        g.lookAt(camera.position); // 保持高清可读
         const baseS=g.userData.baseScale;
         g.scale.lerp(new THREE.Vector3(baseS,baseS,baseS), 1 - Math.exp(-12*dt));
       }
@@ -1305,9 +1328,7 @@
         bokehPass.materialBokeh.uniforms.maxblur.value=isMobileLike?0.012:0.014;
       }
 
-      // render
       if(composer) composer.render(); else renderer.render(scene,camera);
-
       if(firstFrame){ firstFrame=false; loading.style.display="none"; }
     }
     animate();
@@ -1322,7 +1343,6 @@
     addEventListener("resize", handleResize);
     addEventListener("orientationchange", handleResize);
 
-    // init mode
     setMode(MODE.FOLD);
   </script>
 </body>
