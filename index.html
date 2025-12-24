@@ -42,6 +42,7 @@
       padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.08); font-size:12px; color:#ffe9d6;
       max-width: 100%;
+      white-space: nowrap;
     }
 
     #hint {
@@ -115,7 +116,13 @@
       z-index: 5;
     }
 
-    #video { position:fixed; right:var(--padR); bottom:var(--padB); width:160px; height:120px; border-radius:12px; opacity:0; pointer-events:none; z-index: 10; }
+    /* 这里不展示视频，只用于手势识别 */
+    #video {
+      position:fixed; right:var(--padR); bottom:var(--padB);
+      width:160px; height:120px; border-radius:12px;
+      opacity:0; pointer-events:none; z-index: 10;
+      transform: scaleX(-1); /* 与手势控制一致：镜像更“自然” */
+    }
   </style>
 </head>
 
@@ -131,6 +138,7 @@
       </div>
     </div>
   </div>
+
   <video id="video" playsinline muted></video>
 
   <div id="ui">
@@ -171,12 +179,12 @@
 
     <div class="group">
       <span class="pill" id="modePill">状态：合拢态</span>
-      <span class="pill" id="statusLine">合拢：握拳 | 散开：五指张开进入 | 散开旋转：散开态+五指张开+手移动/手腕旋转 | 抓取：拇指+食指捏合 pinch</span>
+      <span class="pill" id="statusLine">合拢：握拳 | 散开：五指张开 | 散开旋转：散开态保持五指张开+移动/手腕旋转 | 抓取：拇指+食指 pinch</span>
     </div>
   </div>
 
   <div id="hint">
-    <div><b>手势</b>：握拳=回合拢；五指张开=进入散开；<b>散开态需保持五指张开</b>才能旋转视角；拇指+食指捏合 pinch=抓取照片放大；两指分开=回原位。</div>
+    <div><b>手势</b>：握拳=回合拢；五指张开=进入散开；<b>散开态保持五指张开</b>可旋转视角；拇指+食指捏合 pinch=抓取照片放大；两指分开=回原位。</div>
     <div style="opacity:.85;margin-top:6px;">GitHub Pages 为 HTTPS：可用摄像头。音乐首次可能需点击一次解锁（浏览器限制）。</div>
   </div>
 
@@ -209,7 +217,6 @@
 
   <!-- MediaPipe Hands -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
     /********************
@@ -389,8 +396,6 @@
     });
     muteBtn.addEventListener("click", ()=>{ audio.toggleMute(); muteBtn.textContent = audio.muted ? "🔇" : "🔊"; });
     vol.addEventListener("input",(e)=>audio.setVolume(parseFloat(e.target.value)));
-
-    // 尝试自动开；失败就不挡画面，只弹出 gate
     startMusicWithGate();
     window.addEventListener("pointerdown", async ()=>{ if(!musicPlaying && audioGate.style.display!=="flex") await startMusicWithGate(); }, { once:false });
 
@@ -403,20 +408,20 @@
     renderer.setPixelRatio(Math.min(devicePixelRatio, isMobileLike ? 1.6 : 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.52;
+    renderer.toneMappingExposure = 1.55;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x07060a);
-    scene.fog = new THREE.FogExp2(COLORS.warmFog, 0.052);
+    scene.fog = new THREE.FogExp2(COLORS.warmFog, 0.050);
 
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 120);
 
     // warm lights
-    scene.add(new THREE.AmbientLight(0xffe1c4, 0.30));
-    scene.add(new THREE.HemisphereLight(0xffd7a6, 0x141028, 1.10));
-    const key = new THREE.PointLight(0xffd1a6, 2.60, 32); key.position.set(3.0, 6.0, 5.6); scene.add(key);
-    const fill = new THREE.PointLight(0xffcaa0, 0.70, 24); fill.position.set(-4.8, 2.6, 3.2); scene.add(fill);
-    const rim = new THREE.PointLight(0xfff0d0, 1.25, 28); rim.position.set(0.0, 6.3, -5.8); scene.add(rim);
+    scene.add(new THREE.AmbientLight(0xffe1c4, 0.32));
+    scene.add(new THREE.HemisphereLight(0xffd7a6, 0x141028, 1.16));
+    const key = new THREE.PointLight(0xffd1a6, 2.80, 32); key.position.set(3.0, 6.0, 5.6); scene.add(key);
+    const fill = new THREE.PointLight(0xffcaa0, 0.78, 24); fill.position.set(-4.8, 2.6, 3.2); scene.add(fill);
+    const rim = new THREE.PointLight(0xfff0d0, 1.40, 28); rim.position.set(0.0, 6.3, -5.8); scene.add(rim);
 
     // composer (optional)
     let composer=null, bloomPass=null, bokehPass=null;
@@ -439,11 +444,11 @@
     function setBloomPreset(preset){
       if(!bloomPass) return;
       if(preset==="soft"){
-        bloomPass.strength=1.08; bloomPass.radius=0.64; bloomPass.threshold=0.22; renderer.toneMappingExposure=1.46;
+        bloomPass.strength=1.05; bloomPass.radius=0.62; bloomPass.threshold=0.22; renderer.toneMappingExposure=1.48;
       } else if(preset==="cinema"){
-        bloomPass.strength=1.45; bloomPass.radius=0.74; bloomPass.threshold=0.16; renderer.toneMappingExposure=1.52;
+        bloomPass.strength=1.45; bloomPass.radius=0.74; bloomPass.threshold=0.16; renderer.toneMappingExposure=1.55;
       } else {
-        bloomPass.strength=2.00; bloomPass.radius=0.82; bloomPass.threshold=0.11; renderer.toneMappingExposure=1.60;
+        bloomPass.strength=2.00; bloomPass.radius=0.82; bloomPass.threshold=0.11; renderer.toneMappingExposure=1.64;
       }
     }
     $("bloom").addEventListener("change",(e)=>setBloomPreset(e.target.value));
@@ -458,7 +463,6 @@
     let treeScale = 1.0;
     function applyLayoutByAspect(){
       const aspect = window.innerWidth / Math.max(1, window.innerHeight);
-
       if(aspect < 0.85){        // phone portrait
         camera.fov = 62;
         camera.position.set(0, 2.18, 7.9);
@@ -730,12 +734,14 @@
     }
     const photoTargets=buildPhotoSlots();
 
+    const interactiveMeshes=[]; // for raycast pick
     function buildPhotoMeshes(){
       const geo=new THREE.PlaneGeometry(1,1);
       for(let i=0;i<photoMax;i++){
         const tex=makePlaceholderTexture(`${i+1}/7`);
         const imgMat=new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:0.98 });
         const img=new THREE.Mesh(geo,imgMat);
+        img.userData.pickParentIndex = i;
 
         const frameMat=new THREE.MeshStandardMaterial({
           color: COLORS.goldBright, metalness: 1.0, roughness: 0.14,
@@ -744,6 +750,7 @@
         const frame=new THREE.Mesh(geo,frameMat);
         frame.scale.set(1.10,1.10,1);
         frame.position.z=-0.001;
+        frame.userData.pickParentIndex = i;
 
         const group=new THREE.Group();
         group.add(frame); group.add(img);
@@ -753,6 +760,8 @@
         group.userData={ index:i, folded:photoTargets.folded[i].clone(), scatter:photoTargets.scatter[i].clone(), baseScale:s, driftSeed:Math.random()*Math.PI*2, aspect:1.0 };
         treeGroup.add(group);
         photoMeshes.push(group);
+
+        interactiveMeshes.push(frame, img);
       }
     }
     buildPhotoMeshes();
@@ -917,16 +926,18 @@
     let focusedPhoto=null;
     let photoZoom=0, photoZoomVel=0;
 
-    let rotY=0, rotX=0;
-    let targetRotY=0, targetRotX=0;
+    let rotY=0, rotX=0, rotZ=0;
+    let targetRotY=0, targetRotX=0, targetRotZ=0;
     let orbitYaw=0, orbitPitch=0;
 
     function setMode(m){
+      // 从 PHOTO 退出时，把照片放回 treeGroup（回到原算法位置）
       if(targetMode === MODE.PHOTO && m !== MODE.PHOTO && focusedPhoto){
         treeGroup.attach(focusedPhoto);
       }
       targetMode=m;
       $("modePill").textContent = (m===MODE.FOLD)?"状态：合拢态":(m===MODE.SCATTER)?"状态：散开态":"状态：照片放大态";
+
       if(m === MODE.PHOTO && focusedPhoto){
         overlayGroup.attach(focusedPhoto);
       }
@@ -942,6 +953,7 @@
       for(const g of photoMeshes){
         const f=g.userData.folded, s=g.userData.scatter, seed=g.userData.driftSeed;
 
+        // 选中照片：磁吸 + 弹性 + 正对屏幕 + 完整适配
         if(mode===MODE.PHOTO && focusedPhoto===g){
           const depth=2.75;
           const forward = camera.getWorldDirection(new THREE.Vector3());
@@ -1013,18 +1025,353 @@
       p.z += Math.cos(t*0.55)*0.10*drift;
 
       helixGroup.position.lerp(p, 1 - Math.exp(-10*dt));
-
       helixGroup.rotation.y = lerp(helixGroup.rotation.y, lerp(0, helixScatter.rot.y, mix), 1 - Math.exp(-10*dt));
       helixGroup.rotation.x = lerp(helixGroup.rotation.x, lerp(0, helixScatter.rot.x, mix), 1 - Math.exp(-10*dt));
       helixGroup.rotation.z = lerp(helixGroup.rotation.z, lerp(0, helixScatter.rot.z, mix), 1 - Math.exp(-10*dt));
     }
 
     /********************
-     * Gesture placeholder (不会影响树显示)
-     * 你后续需要我再把手势整段接回去，我也能给你做“更稳 + 更灵敏”的版本。
+     * Raycast for photo pick (pinch)
+     ********************/
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+
+    function pickPhotoByScreen01(x01, y01){
+      // x01,y01: 0..1
+      ndc.set(x01*2-1, -(y01*2-1));
+      raycaster.setFromCamera(ndc, camera);
+      const hits = raycaster.intersectObjects(interactiveMeshes, false);
+      if(!hits.length) return null;
+      const idx = hits[0].object?.userData?.pickParentIndex;
+      if(typeof idx !== "number") return null;
+      return photoMeshes[idx] || null;
+    }
+
+    /********************
+     * Gesture (MediaPipe Hands)
      ********************/
     const camBtn = $("camBtn");
-    camBtn.addEventListener("click", ()=>alert("这份修复版先保证：树一定可显示。\n若你要我继续把 MediaPipe 手势完整接回，并提升灵敏度，我可以给你下一版完整替换代码。"));
+    const camPill = $("camPill");
+    const gesturePill = $("gesturePill");
+    const video = $("video");
+
+    let hands=null;
+    let camOn=false;
+    let camStream=null;
+    let mpRunning=false;
+
+    // gesture state with hysteresis
+    let pinchActive=false;
+    let pinchHold=0, pinchRelease=0;
+    let openHold=0, fistHold=0;
+
+    // for rotation control
+    let lastWrist=null;
+    let lastAngle=null;
+    let rollTarget=0;
+
+    function dist2(a,b){
+      const dx=a.x-b.x, dy=a.y-b.y;
+      return Math.hypot(dx,dy);
+    }
+
+    function unwrapDeltaAngle(a, b){
+      // delta from a->b in [-pi,pi]
+      let d = b - a;
+      while(d > Math.PI) d -= Math.PI*2;
+      while(d < -Math.PI) d += Math.PI*2;
+      return d;
+    }
+
+    function landmark01(lm, i){
+      // 镜像 x：对用户更自然（向右移动手，画面也向右响应）
+      return { x: 1 - lm[i].x, y: lm[i].y };
+    }
+
+    function classifyGesture(lm){
+      const wrist = landmark01(lm, 0);
+      const indexMCP = landmark01(lm, 5);
+      const middleMCP = landmark01(lm, 9);
+      const ringMCP = landmark01(lm, 13);
+      const pinkyMCP = landmark01(lm, 17);
+
+      const thumbTip = landmark01(lm, 4);
+      const indexTip = landmark01(lm, 8);
+      const middleTip= landmark01(lm, 12);
+      const ringTip  = landmark01(lm, 16);
+      const pinkyTip = landmark01(lm, 20);
+
+      const indexPIP = landmark01(lm, 6);
+      const middlePIP= landmark01(lm, 10);
+      const ringPIP  = landmark01(lm, 14);
+      const pinkyPIP = landmark01(lm, 18);
+
+      const palmSize = Math.max(0.06, dist2(wrist, middleMCP)); // 归一化尺度，避免过小
+      const extThresh = 0.28 * palmSize;
+
+      const idxExt = (indexPIP.y - indexTip.y) > extThresh;
+      const midExt = (middlePIP.y - middleTip.y) > extThresh;
+      const rngExt = (ringPIP.y - ringTip.y) > extThresh;
+      const pkyExt = (pinkyPIP.y - pinkyTip.y) > extThresh;
+
+      // thumb “张开”用与 palm 横向距离粗略判断（更稳）
+      const thumbSpread = Math.abs(thumbTip.x - indexMCP.x);
+      const thbExt = thumbSpread > 0.35 * palmSize;
+
+      const extCount = (idxExt?1:0)+(midExt?1:0)+(rngExt?1:0)+(pkyExt?1:0);
+
+      // open palm：四指伸直 + 拇指外展（更不容易误判）
+      const spread = dist2(indexTip, pinkyTip);
+      const isOpenPalm = (extCount >= 4) && (thbExt || spread > 0.95*palmSize);
+
+      // fist：四指不伸直 + 指尖靠近掌心
+      const tipAvgToWrist =
+        (dist2(indexTip,wrist)+dist2(middleTip,wrist)+dist2(ringTip,wrist)+dist2(pinkyTip,wrist))/4;
+      const isFist = (extCount <= 1) && (tipAvgToWrist < 0.85 * palmSize);
+
+      // pinch：拇指食指距离，带 release hysteresis
+      const pinchDist = dist2(thumbTip, indexTip);
+      const pinchOn  = pinchDist < 0.33 * palmSize;
+      const pinchOff = pinchDist > 0.44 * palmSize;
+
+      // palm direction angle（用于“手腕转一圈=树跟一圈”的积分）
+      const palmDir = Math.atan2(middleMCP.y - wrist.y, middleMCP.x - wrist.x);
+
+      return {
+        wrist, palmSize,
+        isOpenPalm, isFist,
+        pinchOn, pinchOff,
+        pinchPos: { x:(thumbTip.x+indexTip.x)/2, y:(thumbTip.y+indexTip.y)/2 },
+        palmDir
+      };
+    }
+
+    async function initHands(){
+      if(hands) return;
+      hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: isMobileLike ? 0 : 1,
+        minDetectionConfidence: 0.60,
+        minTrackingConfidence: 0.55
+      });
+      hands.onResults(onHandsResults);
+    }
+
+    async function startCamera(){
+      await initHands();
+      if(camOn) return;
+
+      try{
+        // iOS / mobile: ideal 分辨率别太高，避免卡顿
+        const constraints = {
+          audio: false,
+          video: {
+            facingMode: "user",
+            width: { ideal: isMobileLike ? 640 : 960 },
+            height:{ ideal: isMobileLike ? 480 : 720 }
+          }
+        };
+        camStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = camStream;
+        await video.play();
+        camOn = true;
+        mpRunning = true;
+        camBtn.textContent = "摄像头：开启";
+        camPill.textContent = "Gesture: on";
+        gesturePill.textContent = "识别：启动中…";
+
+        // reset
+        pinchActive=false; pinchHold=0; pinchRelease=0; openHold=0; fistHold=0;
+        lastWrist=null; lastAngle=null;
+
+        // frame loop
+        const loop = async () => {
+          if(!mpRunning) return;
+          try{
+            await hands.send({ image: video });
+          }catch(e){
+            // 不让它把渲染打断
+            gesturePill.textContent = "识别：异常";
+          }
+          requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+      }catch(err){
+        camOn=false; mpRunning=false;
+        camPill.textContent = "Gesture: off";
+        gesturePill.textContent = "识别：权限/设备失败";
+        camBtn.textContent = "摄像头：关闭";
+        showError("摄像头启动失败：\n" + (err?.message || err));
+      }
+    }
+
+    function stopCamera(){
+      mpRunning = false;
+      camOn = false;
+      camBtn.textContent = "摄像头：关闭";
+      camPill.textContent = "Gesture: off";
+      gesturePill.textContent = "识别：-";
+      if(camStream){
+        camStream.getTracks().forEach(t=>t.stop());
+        camStream = null;
+      }
+      video.srcObject = null;
+      lastWrist=null; lastAngle=null;
+    }
+
+    camBtn.addEventListener("click", async ()=>{
+      if(!camOn) await startCamera();
+      else stopCamera();
+    });
+
+    function onHandsResults(results){
+      if(!results || !results.multiHandLandmarks || !results.multiHandLandmarks.length) {
+        gesturePill.textContent = camOn ? "识别：未检测到手" : "识别：-";
+        // 手丢失时不要乱跳状态，但 pinch 如果丢失就当作松开（更安全）
+        if(pinchActive){
+          pinchRelease++;
+          if(pinchRelease>=2){
+            pinchActive=false; pinchRelease=0;
+            // pinch 松开：回散开态（保持背景散开）
+            if(focusedPhoto){
+              focusedPhoto = null;
+            }
+            setMode(MODE.SCATTER);
+          }
+        }
+        lastWrist=null;
+        lastAngle=null;
+        return;
+      }
+
+      const lm = results.multiHandLandmarks[0];
+      const g = classifyGesture(lm);
+
+      // 文字提示（更清楚）
+      let label="-";
+
+      // 优先级：pinch > fist > openPalm
+      // 1) pinch
+      if(!pinchActive){
+        if(g.pinchOn){
+          pinchHold++;
+          if(pinchHold>=2){
+            pinchActive=true;
+            pinchHold=0;
+            pinchRelease=0;
+            label="Pinch 抓取";
+
+            // 进入照片放大态：选中一张照片
+            const picked = pickPhotoByScreen01(g.pinchPos.x, g.pinchPos.y);
+            if(picked){
+              focusedPhoto = picked;
+            }else{
+              // 没选到，就默认选中最近的一张（避免“捏了没反应”）
+              focusedPhoto = photoMeshes[0] || null;
+            }
+            if(focusedPhoto){
+              mode = MODE.PHOTO;
+              setMode(MODE.PHOTO);
+            }else{
+              setMode(MODE.SCATTER);
+            }
+          }
+        }else{
+          pinchHold=0;
+        }
+      }else{
+        // pinch active
+        label="Pinch 抓取中";
+        if(g.pinchOff){
+          pinchRelease++;
+          if(pinchRelease>=2){
+            pinchActive=false;
+            pinchRelease=0;
+            focusedPhoto = null;
+            mode = MODE.SCATTER;
+            setMode(MODE.SCATTER);
+          }
+        }else{
+          pinchRelease=0;
+        }
+      }
+
+      // 2) 非 pinch 状态才处理 fist/openPalm
+      if(!pinchActive){
+        // fist → fold
+        if(g.isFist){
+          fistHold++;
+          openHold=0;
+          label="握拳";
+          if(fistHold>=2){
+            fistHold=2; // clamp
+            mode = MODE.FOLD;
+            setMode(MODE.FOLD);
+          }
+        }else{
+          fistHold=0;
+        }
+
+        // open palm → scatter (and rotation control)
+        if(g.isOpenPalm){
+          openHold++;
+          label = (mode===MODE.SCATTER) ? "五指张开（旋转中）" : "五指张开";
+          if(openHold>=2){
+            openHold=2;
+            mode = MODE.SCATTER;
+            setMode(MODE.SCATTER);
+          }
+        }else{
+          // 不立刻清零：给一点缓冲，减少抖动
+          openHold = Math.max(0, openHold-1);
+        }
+
+        // rotation: only in scatter & openPalm held
+        if(targetMode===MODE.SCATTER && g.isOpenPalm){
+          // wrist move controls yaw/pitch, palmDir controls yaw integration, roll slight
+          const wrist = g.wrist;
+          const dir = g.palmDir;
+
+          if(lastWrist){
+            const dx = (wrist.x - lastWrist.x);
+            const dy = (wrist.y - lastWrist.y);
+
+            // 灵敏度（更跟手）
+            const moveYaw   = dx * (isMobileLike ? 10.0 : 9.0);
+            const movePitch = dy * (isMobileLike ? 7.5 : 6.8);
+
+            orbitYaw   += moveYaw;
+            orbitPitch += movePitch;
+            orbitPitch = clamp(orbitPitch, -0.55, 0.75);
+
+            // 手腕旋转角度积分：转一圈=树跟一圈（更符合你的要求）
+            if(lastAngle!==null){
+              const dAng = unwrapDeltaAngle(lastAngle, dir);
+              orbitYaw += dAng * 0.95;
+
+              // roll 轻微加成（更电影感）
+              rollTarget = clamp(dAng, -0.35, 0.35) * 0.35 + dx * 0.18;
+            }
+          }
+
+          lastWrist = wrist;
+          lastAngle = dir;
+
+          targetRotY = orbitYaw;
+          targetRotX = orbitPitch;
+          targetRotZ = lerp(targetRotZ, rollTarget, 0.35);
+        }else{
+          lastWrist=null;
+          lastAngle=null;
+          targetRotZ = lerp(targetRotZ, 0, 0.10);
+        }
+      }
+
+      gesturePill.textContent = "识别：" + label;
+    }
 
     /********************
      * Quality
@@ -1053,8 +1400,9 @@
       lastX=e.clientX; lastY=e.clientY;
       orbitYaw += dx*0.006;
       orbitPitch += dy*0.004;
-      orbitPitch = clamp(orbitPitch, -0.45, 0.65);
+      orbitPitch = clamp(orbitPitch, -0.55, 0.75);
       targetRotY = orbitYaw; targetRotX = orbitPitch;
+      targetRotZ = lerp(targetRotZ, -dx*0.0008, 0.25);
     });
 
     /********************
@@ -1073,13 +1421,16 @@
       [foldMix, foldVel] = springTo(foldMix, foldVel, foldTarget, dt, 18, 8);
 
       const zoomTarget = (targetMode===MODE.PHOTO && focusedPhoto) ? 1 : 0;
-      [photoZoom, photoZoomVel] = springTo(photoZoom, photoZoomVel, zoomTarget, dt, 24, 11);
+      [photoZoom, photoZoomVel] = springTo(photoZoom, photoZoomVel, zoomTarget, dt, 26, 12);
       photoZoom = clamp(photoZoom, 0, 1);
 
-      rotY = lerp(rotY, targetRotY, 1 - Math.exp(-22*dt));
-      rotX = lerp(rotX, targetRotX, 1 - Math.exp(-22*dt));
+      // smoother follow
+      rotY = lerp(rotY, targetRotY, 1 - Math.exp(-26*dt));
+      rotX = lerp(rotX, targetRotX, 1 - Math.exp(-26*dt));
+      rotZ = lerp(rotZ, targetRotZ, 1 - Math.exp(-20*dt));
       treeGroup.rotation.y = rotY;
       treeGroup.rotation.x = rotX;
+      treeGroup.rotation.z = rotZ;
 
       updateInstanced(ballsGold.mesh, ballsGold, foldMix, t, 0.10);
       updateInstanced(ballsRed.mesh,  ballsRed,  foldMix, t, 0.10);
@@ -1094,11 +1445,11 @@
       }
 
       if(bokehPass && bokehPass.enabled){
-        if(mode===MODE.PHOTO && focusedPhoto){
+        if(targetMode===MODE.PHOTO && focusedPhoto){
           const wp = focusedPhoto.getWorldPosition(new THREE.Vector3());
           const dist = camera.position.distanceTo(wp);
           bokehPass.materialBokeh.uniforms.focus.value = dist;
-          bokehPass.materialBokeh.uniforms.maxblur.value = lerp(isMobileLike ? 0.014 : 0.018, isMobileLike ? 0.018 : 0.024, photoZoom);
+          bokehPass.materialBokeh.uniforms.maxblur.value = lerp(isMobileLike ? 0.014 : 0.018, isMobileLike ? 0.020 : 0.026, photoZoom);
         } else {
           bokehPass.materialBokeh.uniforms.focus.value = 6.8;
           bokehPass.materialBokeh.uniforms.maxblur.value = isMobileLike ? 0.012 : 0.014;
