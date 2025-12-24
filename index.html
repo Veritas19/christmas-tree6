@@ -3,15 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Warm Cinematic Xmas Tree (Clear Gestures + Helix Flow)</title>
+  <meta name="theme-color" content="#07060a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Warm Cinematic Xmas Tree (GitHub Pages)</title>
+
   <style>
-    html, body { margin:0; height:100%; background:#07060a; overflow:hidden; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Arial; }
-    #three { position:fixed; inset:0; width:100%; height:100%; display:block; }
+    :root{
+      --padL: calc(12px + env(safe-area-inset-left));
+      --padR: calc(12px + env(safe-area-inset-right));
+      --padT: calc(12px + env(safe-area-inset-top));
+      --padB: calc(12px + env(safe-area-inset-bottom));
+    }
+    html, body { margin:0; height:100%; background:#07060a; overflow:hidden;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Arial; }
+    #three { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
 
     #ui {
-      position:fixed; left:12px; top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-      padding:10px 12px; border-radius:16px; background:rgba(18, 14, 22, .50); border:1px solid rgba(255,255,255,.10);
-      backdrop-filter: blur(10px); color:#ffe9d6; max-width:min(1100px, calc(100% - 24px));
+      position:fixed; left:var(--padL); top:var(--padT);
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      padding:10px 12px; border-radius:16px;
+      background:rgba(18, 14, 22, .52); border:1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px); color:#ffe9d6;
+      max-width: calc(100% - var(--padL) - var(--padR));
       box-shadow: 0 18px 60px rgba(0,0,0,.30);
       z-index: 10;
     }
@@ -22,21 +36,32 @@
       padding:8px 10px; border-radius:12px; cursor:pointer; font-size:13px;
     }
     button:hover, select:hover, input[type="file"]::file-selector-button:hover { background: rgba(255,255,255,.14); }
-    input[type="file"] { color:#ffe9d6; font-size:13px; }
+    input[type="file"] { color:#ffe9d6; font-size:13px; max-width: 220px; }
     input[type="range"] { width:120px; }
     .pill {
       padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.08); font-size:12px; color:#ffe9d6;
+      max-width: 100%;
     }
 
     #hint {
-      position:fixed; left:12px; bottom:12px; max-width:min(900px, calc(100% - 24px));
-      padding:10px 12px; border-radius:16px; background:rgba(18,14,22,.50); border:1px solid rgba(255,255,255,.10);
+      position:fixed; left:var(--padL); bottom:var(--padB);
+      max-width: calc(100% - var(--padL) - var(--padR));
+      padding:10px 12px; border-radius:16px;
+      background:rgba(18,14,22,.50); border:1px solid rgba(255,255,255,.10);
       backdrop-filter: blur(10px); color:#ffe9d6; font-size:13px; line-height:1.35;
       box-shadow: 0 18px 60px rgba(0,0,0,.30);
       z-index: 10;
     }
     #hint b { color:#ffffff; }
+
+    /* 小屏更清爽：提示缩成一行可读 */
+    @media (max-width: 720px){
+      #hint{ font-size:12px; line-height:1.28; opacity:0.92; }
+      #ui{ gap:8px; }
+      input[type="file"]{ max-width: 160px; }
+      input[type="range"]{ width: 96px; }
+    }
 
     #audioGate {
       position:fixed; inset:0; display:none; align-items:center; justify-content:center;
@@ -46,7 +71,7 @@
     #audioGate .card{
       width:min(560px, calc(100% - 24px));
       border-radius:20px; padding:16px 16px 14px;
-      background: rgba(18, 14, 22, .82);
+      background: rgba(18, 14, 22, .86);
       border:1px solid rgba(255,255,255,.12);
       backdrop-filter: blur(10px);
       box-shadow: 0 22px 90px rgba(0,0,0,.45);
@@ -54,7 +79,8 @@
     #audioGate .row{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
 
     #errorBox{
-      position:fixed; right:12px; top:12px; width:min(520px, calc(100% - 24px));
+      position:fixed; right:var(--padR); top:var(--padT);
+      width:min(520px, calc(100% - var(--padL) - var(--padR)));
       padding:10px 12px; border-radius:16px;
       background: rgba(120, 20, 20, .35);
       border:1px solid rgba(255,255,255,.12);
@@ -72,7 +98,7 @@
       z-index: 5;
     }
 
-    #video { position:fixed; right:12px; bottom:12px; width:160px; height:120px; border-radius:12px; opacity:0; pointer-events:none; z-index: 10; }
+    #video { position:fixed; right:var(--padR); bottom:var(--padB); width:160px; height:120px; border-radius:12px; opacity:0; pointer-events:none; z-index: 10; }
   </style>
 </head>
 
@@ -125,8 +151,8 @@
   </div>
 
   <div id="hint">
-    <div><b>手势规则更清晰</b>：握拳=回合拢；五指张开=进入散开；<b>散开态需保持五指张开</b>才能旋转视角；拇指+食指捏合 pinch=抓取照片进入放大态；两指分开=照片回原位。</div>
-    <div style="opacity:.85;margin-top:6px;">摄像头需要 https 或 localhost；音乐若被拦截会弹出“点击开启音乐”。</div>
+    <div><b>手势</b>：握拳=回合拢；五指张开=进入散开；<b>散开态需保持五指张开</b>才能旋转视角；拇指+食指捏合 pinch=抓取照片放大；两指分开=回原位。</div>
+    <div style="opacity:.85;margin-top:6px;">GitHub Pages 为 HTTPS：可用摄像头。音乐首次可能需点击一次解锁（浏览器限制）。</div>
   </div>
 
   <div id="audioGate">
@@ -166,8 +192,12 @@
      ********************/
     const errorBox = document.getElementById("errorBox");
     function showError(msg) { errorBox.style.display = "block"; errorBox.textContent = msg; }
-    window.addEventListener("error", (e) => { showError("JS Error:\n" + (e.message || e.error) + "\n" + (e.filename||"") + ":" + (e.lineno||"") ); });
-    window.addEventListener("unhandledrejection", (e) => { showError("Promise Rejection:\n" + (e.reason?.message || e.reason)); });
+    window.addEventListener("error", (e) => {
+      showError("JS Error:\n" + (e.message || e.error) + "\n" + (e.filename||"") + ":" + (e.lineno||"") );
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      showError("Promise Rejection:\n" + (e.reason?.message || e.reason));
+    });
 
     /********************
      * Helpers
@@ -176,6 +206,11 @@
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
     const lerp = (a, b, t) => a + (b - a) * t;
     const now = () => performance.now() / 1000;
+
+    const isMobileLike = (() => {
+      const ua = navigator.userAgent || "";
+      return /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(ua) || Math.min(screen.width, screen.height) <= 820;
+    })();
 
     /********************
      * Palette
@@ -189,7 +224,7 @@
     };
 
     /********************
-     * Audio (smooth)
+     * Audio (procedural smooth BGM)
      ********************/
     class AudioManager {
       constructor() {
@@ -321,14 +356,17 @@
     }
     audioGateBtn.addEventListener("click", async ()=>{ await startMusicWithGate(); });
     audioGateMute.addEventListener("click", ()=>{ audioGate.style.display="none"; musicPill.textContent="BGM: off"; });
+
     musicBtn.addEventListener("click", async ()=>{
       if(!musicPlaying) await startMusicWithGate();
       else { audio.stop(); musicPlaying=false; musicBtn.textContent="音乐：播放"; musicPill.textContent="BGM: off"; }
     });
     muteBtn.addEventListener("click", ()=>{ audio.toggleMute(); muteBtn.textContent = audio.muted ? "🔇" : "🔊"; });
     vol.addEventListener("input",(e)=>audio.setVolume(parseFloat(e.target.value)));
+
+    // 尝试自动开；不行就等用户点
     startMusicWithGate();
-    window.addEventListener("pointerdown", async ()=>{ if(!musicPlaying && audioGate.style.display!=="flex") await startMusicWithGate(); });
+    window.addEventListener("pointerdown", async ()=>{ if(!musicPlaying && audioGate.style.display!=="flex") await startMusicWithGate(); }, { once:false });
 
     /********************
      * Three.js setup
@@ -336,24 +374,49 @@
     const canvas = $("three");
     const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true, powerPreference:"high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+    // 移动端更稳：像素比上限更低
+    renderer.setPixelRatio(Math.min(devicePixelRatio, isMobileLike ? 1.6 : 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.48;
+    renderer.toneMappingExposure = 1.52;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x07060a);
     scene.fog = new THREE.FogExp2(COLORS.warmFog, 0.052);
 
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 120);
-    camera.position.set(0, 2.35, 7.0);
+
+    // 统一“在不同设备下的大小/比例”：
+    // 根据宽高比调整 FOV/相机距离/树缩放，保证手机、平板、电脑都舒服
+    let treeScale = 1.0;
+    function applyLayoutByAspect(){
+      const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+
+      if(aspect < 0.85){        // 竖屏手机
+        camera.fov = 62;
+        camera.position.set(0, 2.18, 7.9);
+        treeScale = 0.95;
+      } else if(aspect < 1.15){ // 竖屏平板/近方屏
+        camera.fov = 58;
+        camera.position.set(0, 2.28, 7.35);
+        treeScale = 1.0;
+      } else {                  // 横屏/桌面
+        camera.fov = 55;
+        camera.position.set(0, 2.35, 7.0);
+        treeScale = 1.02;
+      }
+      camera.aspect = aspect;
+      camera.updateProjectionMatrix();
+      if(treeGroup) treeGroup.scale.setScalar(treeScale);
+    }
 
     // warm lights
-    scene.add(new THREE.AmbientLight(0xffe1c4, 0.26));
-    scene.add(new THREE.HemisphereLight(0xffd7a6, 0x141028, 1.05));
-    const key = new THREE.PointLight(0xffd1a6, 2.35, 32); key.position.set(3.0, 6.0, 5.6); scene.add(key);
-    const fill = new THREE.PointLight(0xffcaa0, 0.60, 24); fill.position.set(-4.8, 2.6, 3.2); scene.add(fill);
-    const rim = new THREE.PointLight(0xfff0d0, 1.15, 28); rim.position.set(0.0, 6.3, -5.8); scene.add(rim);
+    scene.add(new THREE.AmbientLight(0xffe1c4, 0.30));
+    scene.add(new THREE.HemisphereLight(0xffd7a6, 0x141028, 1.10));
+    const key = new THREE.PointLight(0xffd1a6, 2.60, 32); key.position.set(3.0, 6.0, 5.6); scene.add(key);
+    const fill = new THREE.PointLight(0xffcaa0, 0.70, 24); fill.position.set(-4.8, 2.6, 3.2); scene.add(fill);
+    const rim = new THREE.PointLight(0xfff0d0, 1.25, 28); rim.position.set(0.0, 6.3, -5.8); scene.add(rim);
 
     // composer
     let composer=null, bloomPass=null, bokehPass=null;
@@ -362,7 +425,9 @@
       composer.addPass(new THREE.RenderPass(scene, camera));
       bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.45, 0.72, 0.16);
       composer.addPass(bloomPass);
-      bokehPass = new THREE.BokehPass(scene, camera, { focus: 7.0, aperture: 0.00024, maxblur: 0.018 });
+
+      // 移动端 DOF 也开，但默认更轻，保证流畅
+      bokehPass = new THREE.BokehPass(scene, camera, { focus: 7.0, aperture: isMobileLike ? 0.00020 : 0.00024, maxblur: isMobileLike ? 0.014 : 0.018 });
       composer.addPass(bokehPass);
     }catch(e){
       showError("后处理加载失败（Composer/Bloom/DOF）。将降级为普通渲染。\n" + (e?.message||e));
@@ -372,11 +437,11 @@
     function setBloomPreset(preset){
       if(!bloomPass) return;
       if(preset==="soft"){
-        bloomPass.strength=1.08; bloomPass.radius=0.64; bloomPass.threshold=0.22; renderer.toneMappingExposure=1.42;
+        bloomPass.strength=1.08; bloomPass.radius=0.64; bloomPass.threshold=0.22; renderer.toneMappingExposure=1.46;
       } else if(preset==="cinema"){
-        bloomPass.strength=1.45; bloomPass.radius=0.74; bloomPass.threshold=0.16; renderer.toneMappingExposure=1.48;
+        bloomPass.strength=1.45; bloomPass.radius=0.74; bloomPass.threshold=0.16; renderer.toneMappingExposure=1.52;
       } else {
-        bloomPass.strength=2.00; bloomPass.radius=0.82; bloomPass.threshold=0.11; renderer.toneMappingExposure=1.54;
+        bloomPass.strength=2.00; bloomPass.radius=0.82; bloomPass.threshold=0.11; renderer.toneMappingExposure=1.60;
       }
     }
     $("bloom").addEventListener("change",(e)=>setBloomPreset(e.target.value));
@@ -723,7 +788,7 @@
     });
 
     /********************
-     * Helix: standard in FOLD, "flowing" in SCATTER via shader displacement
+     * Helix: standard in FOLD, "flowing" in SCATTER
      ********************/
     const helixGroup = new THREE.Group();
     treeGroup.add(helixGroup);
@@ -872,6 +937,7 @@
           const vFov = THREE.MathUtils.degToRad(camera.fov);
           const visibleH = 2 * Math.tan(vFov/2) * depth;
           const visibleW = visibleH * camera.aspect;
+
           const frame = g.children[0];
           const frameW = frame.scale.x;
           const frameH = frame.scale.y;
@@ -980,11 +1046,9 @@
       camPill.textContent = gestureOn ? `Gesture: ${lastHands.length ? "tracking" : "no-hands"}` : "Gesture: off";
     }
 
-    // ===== clearer gesture primitives =====
     function fingerExtended(lm, tip, pip){
       return (lm[tip].y < lm[pip].y - 0.010);
     }
-
     function jointAngle(lm, a, b, c){
       const ab = { x: lm[a].x - lm[b].x, y: lm[a].y - lm[b].y, z: (lm[a].z||0) - (lm[b].z||0) };
       const cb = { x: lm[c].x - lm[b].x, y: lm[c].y - lm[b].y, z: (lm[c].z||0) - (lm[b].z||0) };
@@ -994,7 +1058,6 @@
       const cos = dot / (lab*lcb + 1e-6);
       return Math.acos(clamp(cos, -1, 1));
     }
-
     function isOpenFive(lm){
       const idx = fingerExtended(lm, 8, 6);
       const mid = fingerExtended(lm, 12, 10);
@@ -1004,7 +1067,6 @@
       const span = Math.hypot(lm[8].x - lm[20].x, lm[8].y - lm[20].y);
       return (idx && mid && ring && pink && thumbStraight && span > 0.22);
     }
-
     function isFist(lm){
       const ext =
         (fingerExtended(lm,8,6)?1:0) +
@@ -1021,32 +1083,27 @@
       avg/=4;
       return avg < 0.22;
     }
-
     function pinchRatio(lm){
       const thumb=lm[4], index=lm[8], wrist=lm[0], mcp=lm[5];
       const pinch=Math.hypot(thumb.x-index.x, thumb.y-index.y);
       const size=Math.max(1e-4, Math.hypot(wrist.x-mcp.x, wrist.y-mcp.y));
       return pinch/size;
     }
-
     function handCenter(lm){
       const ids=[0,5,9,13,17];
       let x=0,y=0; for(const i of ids){ x+=lm[i].x; y+=lm[i].y; }
       return {x:x/ids.length, y:y/ids.length};
     }
-
     function handRoll(lm){
       const a=lm[5], b=lm[17];
       return Math.atan2(b.y-a.y, b.x-a.x);
     }
-
     function unwrapDeltaAngle(d){
       while(d > Math.PI) d -= Math.PI*2;
       while(d < -Math.PI) d += Math.PI*2;
       return d;
     }
 
-    // ===== interaction state for gestures =====
     let openHold=0, fistHold=0;
     let pinchActive=false;
     const handState = { has:false, x:0, y:0, roll:0 };
@@ -1078,10 +1135,6 @@
     }
 
     async function startCamera(){
-      if(!window.isSecureContext && location.hostname !== "localhost"){
-        alert("摄像头需要 https 或 localhost。请用本地服务器打开：http://localhost:8000");
-        return;
-      }
       await initHands();
 
       mpCamera = new Camera(videoEl, {
@@ -1126,15 +1179,14 @@
       } else stopCamera();
     });
 
-    // ===== CLEAR priority gesture dispatcher =====
     function processGestures(dt){
       if(!gestureOn || !lastHands.length) { handState.has=false; gesturePill.textContent="识别：-"; return; }
 
       const lm = lastHands[0].lm;
 
-      const fist = isFist(lm);          // 握拳
-      const open5 = isOpenFive(lm);     // 五指张开（严格）
-      const pr = pinchRatio(lm);        // pinch 距离比
+      const fist = isFist(lm);
+      const open5 = isOpenFive(lm);
+      const pr = pinchRatio(lm);
 
       const pinchOn  = 0.32;
       const pinchOff = 0.42;
@@ -1148,7 +1200,6 @@
       else if(open5) label = "五指张开";
       gesturePill.textContent = `识别：${label} | pinch=${pr.toFixed(2)} | openHold=${openHold}`;
 
-      // 1) FIST: go FOLD
       if(fistHold >= 6){
         pinchActive = false;
         handState.has = false;
@@ -1157,15 +1208,12 @@
         return;
       }
 
-      // 2) PINCH: grab photo ONLY when already SCATTER
       if(!pinchActive && pr < pinchOn && targetMode === MODE.SCATTER){
         pinchActive = true;
-
-        const tip = lm[8]; // index tip
+        const tip = lm[8];
         const px = tip.x * window.innerWidth;
         const py = tip.y * window.innerHeight;
         const hit = nearestPhotoByScreen(px, py, 180);
-
         if(hit){
           focusedPhoto = hit;
           setMode(MODE.PHOTO);
@@ -1173,7 +1221,6 @@
         return;
       }
 
-      // pinch release => back to SCATTER
       if(pinchActive && pr > pinchOff){
         pinchActive = false;
         if(targetMode === MODE.PHOTO){
@@ -1183,14 +1230,12 @@
         return;
       }
 
-      // 3) OPEN5: enter SCATTER only from FOLD
       if(targetMode === MODE.FOLD && openHold >= 6){
         setMode(MODE.SCATTER);
         handState.has = false;
         return;
       }
 
-      // 4) ROTATE: only in SCATTER + MUST keep OPEN5
       if(targetMode === MODE.SCATTER && open5 && !pinchActive){
         const c = handCenter(lm);
         const roll = handRoll(lm);
@@ -1205,7 +1250,9 @@
         const dy = (c.y - handState.y);
         const dr = unwrapDeltaAngle(roll - handState.roll);
 
-        orbitYaw   += dx * 8.5 + dr * 1.0; // 360° wrist roll => 360° scene yaw
+        orbitYaw   += dx * 8.5 + dr * 1.0;
+        orbitPitch Ens= orbitPitch; // noop (compat)
+
         orbitPitch += dy * 4.4;
         orbitPitch = clamp(orbitPitch, -0.45, 0.65);
 
@@ -1219,17 +1266,26 @@
     }
 
     /********************
-     * Quality
+     * Quality (auto)
      ********************/
     function applyQuality(q){
-      if(q==="low"){ needleCount=7000; rebuildNeedles(); if(bokehPass) bokehPass.enabled=false; }
-      else if(q==="mid"){ needleCount=12000; rebuildNeedles(); if(bokehPass){ bokehPass.enabled=true; bokehPass.materialBokeh.uniforms.maxblur.value=0.018; } }
-      else { needleCount=17500; rebuildNeedles(); if(bokehPass){ bokehPass.enabled=true; bokehPass.materialBokeh.uniforms.maxblur.value=0.022; } }
+      if(q==="low"){ needleCount=isMobileLike ? 6000 : 7000; rebuildNeedles(); if(bokehPass) bokehPass.enabled=false; }
+      else if(q==="mid"){ needleCount=isMobileLike ? 9000 : 12000; rebuildNeedles(); if(bokehPass){ bokehPass.enabled=true; bokehPass.materialBokeh.uniforms.maxblur.value=isMobileLike ? 0.014 : 0.018; } }
+      else { needleCount=isMobileLike ? 12000 : 17500; rebuildNeedles(); if(bokehPass){ bokehPass.enabled=true; bokehPass.materialBokeh.uniforms.maxblur.value=isMobileLike ? 0.016 : 0.022; } }
     }
-    $("quality").addEventListener("change",(e)=>applyQuality(e.target.value));
+
+    // 首次自动选档：手机默认 mid，电脑默认 high（你也可以改）
+    const qualitySel = $("quality");
+    if(isMobileLike){
+      qualitySel.value = "mid";
+    }else{
+      qualitySel.value = "high";
+    }
+    applyQuality(qualitySel.value);
+    qualitySel.addEventListener("change",(e)=>applyQuality(e.target.value));
 
     /********************
-     * Mouse fallback (drag rotate)
+     * Mouse / touch fallback drag rotate
      ********************/
     let dragging=false, lastX=0, lastY=0;
     canvas.addEventListener("pointerdown",(e)=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture(e.pointerId); });
@@ -1292,27 +1348,34 @@
           const wp = focusedPhoto.getWorldPosition(new THREE.Vector3());
           const dist = camera.position.distanceTo(wp);
           bokehPass.materialBokeh.uniforms.focus.value = dist;
-          bokehPass.materialBokeh.uniforms.maxblur.value = lerp(0.018, 0.024, photoZoom);
+          bokehPass.materialBokeh.uniforms.maxblur.value = lerp(isMobileLike ? 0.014 : 0.018, isMobileLike ? 0.018 : 0.024, photoZoom);
         } else {
           bokehPass.materialBokeh.uniforms.focus.value = 6.8;
-          bokehPass.materialBokeh.uniforms.maxblur.value = 0.014;
+          bokehPass.materialBokeh.uniforms.maxblur.value = isMobileLike ? 0.012 : 0.014;
         }
       }
 
       if(composer) composer.render();
       else renderer.render(scene, camera);
     }
-    animate();
 
-    window.addEventListener("resize",()=>{
+    /********************
+     * Resize / orientation
+     ********************/
+    function handleResize(){
       renderer.setSize(window.innerWidth, window.innerHeight);
-      camera.aspect = window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(devicePixelRatio, isMobileLike ? 1.6 : 2));
+      applyLayoutByAspect();
       if(composer) composer.setSize(window.innerWidth, window.innerHeight);
       if(bloomPass) bloomPass.setSize(window.innerWidth, window.innerHeight);
-    });
+    }
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
 
+    // init layout + start
+    applyLayoutByAspect();
     setMode(MODE.FOLD);
+    animate();
   </script>
 </body>
 </html>
