@@ -4,9 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#07060a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Warm Cinematic Xmas Tree</title>
+  <title>Warm Cinematic Xmas Tree (Gesture Ready)</title>
 
   <style>
     :root{
@@ -31,13 +29,16 @@
     }
     #ui .group { display:flex; gap:8px; align-items:center; padding-right:10px; border-right:1px solid rgba(255,255,255,.10); }
     #ui .group:last-child { border-right:none; padding-right:0; }
+
     button, select, input[type="file"]::file-selector-button {
       background: rgba(255,255,255,.10); color:#ffe9d6; border:1px solid rgba(255,255,255,.14);
       padding:8px 10px; border-radius:12px; cursor:pointer; font-size:13px;
     }
     button:hover, select:hover, input[type="file"]::file-selector-button:hover { background: rgba(255,255,255,.14); }
+
     input[type="file"] { color:#ffe9d6; font-size:13px; max-width: 220px; }
     input[type="range"] { width:120px; }
+
     .pill {
       padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.08); font-size:12px; color:#ffe9d6;
@@ -78,9 +79,24 @@
     }
     #audioGate .row{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
 
+    #camGate {
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background: radial-gradient(ellipse at center, rgba(40,28,30,.58), rgba(7,6,10,.92));
+      z-index: 21; color:#fff2e7;
+    }
+    #camGate .card{
+      width:min(580px, calc(100% - 24px));
+      border-radius:20px; padding:16px 16px 14px;
+      background: rgba(18, 14, 22, .86);
+      border:1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 22px 90px rgba(0,0,0,.45);
+    }
+    #camGate .row{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+
     #errorBox{
       position:fixed; right:var(--padR); top:var(--padT);
-      width:min(520px, calc(100% - var(--padL) - var(--padR)));
+      width:min(560px, calc(100% - var(--padL) - var(--padR)));
       padding:10px 12px; border-radius:16px;
       background: rgba(120, 20, 20, .35);
       border:1px solid rgba(255,255,255,.12);
@@ -116,12 +132,12 @@
       z-index: 5;
     }
 
-    /* 这里不展示视频，只用于手势识别 */
+    /* 仅用于识别：不要 display:none（iOS/Safari 可能不喂帧） */
     #video {
       position:fixed; right:var(--padR); bottom:var(--padB);
       width:160px; height:120px; border-radius:12px;
       opacity:0; pointer-events:none; z-index: 10;
-      transform: scaleX(-1); /* 与手势控制一致：镜像更“自然” */
+      transform: scaleX(-1);
     }
   </style>
 </head>
@@ -130,6 +146,7 @@
   <canvas id="three"></canvas>
   <div id="vignette"></div>
   <div id="errorBox"></div>
+
   <div id="loading">
     <div class="card">
       <div style="font-weight:700;font-size:15px;">正在加载圣诞树…</div>
@@ -157,8 +174,12 @@
 
     <div class="group">
       <button id="camBtn">摄像头：关闭</button>
+      <select id="camSelect" title="选择摄像头（部分移动端不支持）" style="max-width:180px;">
+        <option value="">默认摄像头</option>
+      </select>
       <span class="pill" id="camPill">Gesture: off</span>
       <span class="pill" id="gesturePill">识别：-</span>
+      <span class="pill" id="gestureDbg">dbg:-</span>
     </div>
 
     <div class="group">
@@ -185,18 +206,31 @@
 
   <div id="hint">
     <div><b>手势</b>：握拳=回合拢；五指张开=进入散开；<b>散开态保持五指张开</b>可旋转视角；拇指+食指捏合 pinch=抓取照片放大；两指分开=回原位。</div>
-    <div style="opacity:.85;margin-top:6px;">GitHub Pages 为 HTTPS：可用摄像头。音乐首次可能需点击一次解锁（浏览器限制）。</div>
+    <div style="opacity:.85;margin-top:6px;">提示：GitHub Pages 必须是 HTTPS 才能开摄像头；首次需要手动点一下“摄像头：开启”。</div>
   </div>
 
   <div id="audioGate">
     <div class="card">
       <div style="font-size:16px; font-weight:700;">点击开启音乐</div>
-      <div style="margin-top:8px; color:#ffe9d6; opacity:.92; line-height:1.4;">
-        浏览器通常禁止网页在未交互前自动播放声音。点击一次即可开启更丝滑的圣诞 BGM。
+      <div style="margin-top:8px; opacity:.92; line-height:1.4;">
+        浏览器通常禁止网页在未交互前自动播放声音。点一次即可开启更丝滑的圣诞 BGM。
       </div>
       <div class="row">
         <button id="audioGateBtn">开启音乐</button>
         <button id="audioGateMute">不播放</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="camGate">
+    <div class="card">
+      <div style="font-size:16px; font-weight:700;">开启摄像头以启用手势交互</div>
+      <div style="margin-top:8px; opacity:.92; line-height:1.4;">
+        需要摄像头权限才能识别：握拳 / 五指张开 / pinch。点击下面按钮并允许权限。
+      </div>
+      <div class="row">
+        <button id="camGateBtn">开启摄像头</button>
+        <button id="camGateClose">先不启用</button>
       </div>
     </div>
   </div>
@@ -215,8 +249,9 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/BokehPass.js"></script>
 
-  <!-- MediaPipe Hands -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <!-- MediaPipe (pinned versions for stability) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
 
   <script>
     /********************
@@ -250,7 +285,6 @@
      ********************/
     const COLORS = {
       goldBright: new THREE.Color("#ffd86b"),
-      yellowHelix: new THREE.Color("#ffe24a"),
       orangeStar: new THREE.Color("#ffb24a"),
       redBright: new THREE.Color("#ff1c2b"),
       warmFog: new THREE.Color("#0d0710"),
@@ -416,14 +450,12 @@
 
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 120);
 
-    // warm lights
     scene.add(new THREE.AmbientLight(0xffe1c4, 0.32));
     scene.add(new THREE.HemisphereLight(0xffd7a6, 0x141028, 1.16));
     const key = new THREE.PointLight(0xffd1a6, 2.80, 32); key.position.set(3.0, 6.0, 5.6); scene.add(key);
     const fill = new THREE.PointLight(0xffcaa0, 0.78, 24); fill.position.set(-4.8, 2.6, 3.2); scene.add(fill);
     const rim = new THREE.PointLight(0xfff0d0, 1.40, 28); rim.position.set(0.0, 6.3, -5.8); scene.add(rim);
 
-    // composer (optional)
     let composer=null, bloomPass=null, bokehPass=null;
     if(THREE.EffectComposer && THREE.UnrealBloomPass){
       try{
@@ -431,14 +463,11 @@
         composer.addPass(new THREE.RenderPass(scene, camera));
         bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.45, 0.72, 0.16);
         composer.addPass(bloomPass);
-
         if(THREE.BokehPass){
           bokehPass = new THREE.BokehPass(scene, camera, { focus: 7.0, aperture: isMobileLike ? 0.00020 : 0.00024, maxblur: isMobileLike ? 0.014 : 0.018 });
           composer.addPass(bokehPass);
         }
-      }catch(e){
-        composer=null; bloomPass=null; bokehPass=null;
-      }
+      }catch(e){ composer=null; bloomPass=null; bokehPass=null; }
     }
 
     function setBloomPreset(preset){
@@ -454,24 +483,21 @@
     $("bloom").addEventListener("change",(e)=>setBloomPreset(e.target.value));
     setBloomPreset("cinema");
 
-    /********************
-     * Layout: adaptive size & proportion
-     ********************/
     const treeGroup = new THREE.Group(); scene.add(treeGroup);
     const overlayGroup = new THREE.Group(); scene.add(overlayGroup);
 
     let treeScale = 1.0;
     function applyLayoutByAspect(){
       const aspect = window.innerWidth / Math.max(1, window.innerHeight);
-      if(aspect < 0.85){        // phone portrait
+      if(aspect < 0.85){
         camera.fov = 62;
         camera.position.set(0, 2.18, 7.9);
         treeScale = 0.95;
-      } else if(aspect < 1.15){ // tablet-ish
+      } else if(aspect < 1.15){
         camera.fov = 58;
         camera.position.set(0, 2.28, 7.35);
         treeScale = 1.0;
-      } else {                  // desktop landscape
+      } else {
         camera.fov = 55;
         camera.position.set(0, 2.35, 7.0);
         treeScale = 1.02;
@@ -481,9 +507,6 @@
       treeGroup.scale.setScalar(treeScale);
     }
 
-    /********************
-     * Ground + trunk
-     ********************/
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(6.2, 80),
       new THREE.MeshBasicMaterial({ color:0x15112a, transparent:true, opacity:0.38 })
@@ -507,9 +530,6 @@
       const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace; return tex;
     }
 
-    /********************
-     * Star: bigger, sharper
-     ********************/
     function makeStarMesh() {
       const outer = 0.62;
       const inner = 0.12;
@@ -546,9 +566,6 @@
     starGlow.scale.set(2.5,2.5,1);
     treeGroup.add(starGlow);
 
-    /********************
-     * Warm volumetric sprites
-     ********************/
     const glowTex = makeGlowTexture();
     const glowSprites=[];
     (function(){
@@ -563,9 +580,6 @@
       });
     })();
 
-    /********************
-     * Needles: branched + points
-     ********************/
     let needlePoints=null, needleCount=12000;
     function buildNeedles(count){
       const geo=new THREE.BufferGeometry();
@@ -631,9 +645,6 @@
     }
     rebuildNeedles();
 
-    /********************
-     * Ornaments: ONLY bright gold + bright red balls
-     ********************/
     function randInSphere(r){
       const u=Math.random(), v=Math.random();
       const theta=u*Math.PI*2;
@@ -734,7 +745,7 @@
     }
     const photoTargets=buildPhotoSlots();
 
-    const interactiveMeshes=[]; // for raycast pick
+    const interactiveMeshes=[];
     function buildPhotoMeshes(){
       const geo=new THREE.PlaneGeometry(1,1);
       for(let i=0;i<photoMax;i++){
@@ -866,7 +877,7 @@
         blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
         uniforms: {
           uTime: { value: 0 },
-          uMix: { value: 0 },       // 0=fold perfect, 1=scatter flow
+          uMix: { value: 0 },
           uColor: { value: new THREE.Color(colorHex) },
           uOpacity: { value: baseOpacity },
           uY0: { value: helixGeom.y0 },
@@ -931,13 +942,11 @@
     let orbitYaw=0, orbitPitch=0;
 
     function setMode(m){
-      // 从 PHOTO 退出时，把照片放回 treeGroup（回到原算法位置）
       if(targetMode === MODE.PHOTO && m !== MODE.PHOTO && focusedPhoto){
         treeGroup.attach(focusedPhoto);
       }
       targetMode=m;
       $("modePill").textContent = (m===MODE.FOLD)?"状态：合拢态":(m===MODE.SCATTER)?"状态：散开态":"状态：照片放大态";
-
       if(m === MODE.PHOTO && focusedPhoto){
         overlayGroup.attach(focusedPhoto);
       }
@@ -953,8 +962,7 @@
       for(const g of photoMeshes){
         const f=g.userData.folded, s=g.userData.scatter, seed=g.userData.driftSeed;
 
-        // 选中照片：磁吸 + 弹性 + 正对屏幕 + 完整适配
-        if(mode===MODE.PHOTO && focusedPhoto===g){
+        if(targetMode===MODE.PHOTO && focusedPhoto===g){
           const depth=2.75;
           const forward = camera.getWorldDirection(new THREE.Vector3());
           const targetPos = camera.position.clone().add(forward.multiplyScalar(depth));
@@ -1031,13 +1039,11 @@
     }
 
     /********************
-     * Raycast for photo pick (pinch)
+     * Raycast pick photo (pinch)
      ********************/
     const raycaster = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
-
     function pickPhotoByScreen01(x01, y01){
-      // x01,y01: 0..1
       ndc.set(x01*2-1, -(y01*2-1));
       raycaster.setFromCamera(ndc, camera);
       const hits = raycaster.intersectObjects(interactiveMeshes, false);
@@ -1048,332 +1054,6 @@
     }
 
     /********************
-     * Gesture (MediaPipe Hands)
-     ********************/
-    const camBtn = $("camBtn");
-    const camPill = $("camPill");
-    const gesturePill = $("gesturePill");
-    const video = $("video");
-
-    let hands=null;
-    let camOn=false;
-    let camStream=null;
-    let mpRunning=false;
-
-    // gesture state with hysteresis
-    let pinchActive=false;
-    let pinchHold=0, pinchRelease=0;
-    let openHold=0, fistHold=0;
-
-    // for rotation control
-    let lastWrist=null;
-    let lastAngle=null;
-    let rollTarget=0;
-
-    function dist2(a,b){
-      const dx=a.x-b.x, dy=a.y-b.y;
-      return Math.hypot(dx,dy);
-    }
-
-    function unwrapDeltaAngle(a, b){
-      // delta from a->b in [-pi,pi]
-      let d = b - a;
-      while(d > Math.PI) d -= Math.PI*2;
-      while(d < -Math.PI) d += Math.PI*2;
-      return d;
-    }
-
-    function landmark01(lm, i){
-      // 镜像 x：对用户更自然（向右移动手，画面也向右响应）
-      return { x: 1 - lm[i].x, y: lm[i].y };
-    }
-
-    function classifyGesture(lm){
-      const wrist = landmark01(lm, 0);
-      const indexMCP = landmark01(lm, 5);
-      const middleMCP = landmark01(lm, 9);
-      const ringMCP = landmark01(lm, 13);
-      const pinkyMCP = landmark01(lm, 17);
-
-      const thumbTip = landmark01(lm, 4);
-      const indexTip = landmark01(lm, 8);
-      const middleTip= landmark01(lm, 12);
-      const ringTip  = landmark01(lm, 16);
-      const pinkyTip = landmark01(lm, 20);
-
-      const indexPIP = landmark01(lm, 6);
-      const middlePIP= landmark01(lm, 10);
-      const ringPIP  = landmark01(lm, 14);
-      const pinkyPIP = landmark01(lm, 18);
-
-      const palmSize = Math.max(0.06, dist2(wrist, middleMCP)); // 归一化尺度，避免过小
-      const extThresh = 0.28 * palmSize;
-
-      const idxExt = (indexPIP.y - indexTip.y) > extThresh;
-      const midExt = (middlePIP.y - middleTip.y) > extThresh;
-      const rngExt = (ringPIP.y - ringTip.y) > extThresh;
-      const pkyExt = (pinkyPIP.y - pinkyTip.y) > extThresh;
-
-      // thumb “张开”用与 palm 横向距离粗略判断（更稳）
-      const thumbSpread = Math.abs(thumbTip.x - indexMCP.x);
-      const thbExt = thumbSpread > 0.35 * palmSize;
-
-      const extCount = (idxExt?1:0)+(midExt?1:0)+(rngExt?1:0)+(pkyExt?1:0);
-
-      // open palm：四指伸直 + 拇指外展（更不容易误判）
-      const spread = dist2(indexTip, pinkyTip);
-      const isOpenPalm = (extCount >= 4) && (thbExt || spread > 0.95*palmSize);
-
-      // fist：四指不伸直 + 指尖靠近掌心
-      const tipAvgToWrist =
-        (dist2(indexTip,wrist)+dist2(middleTip,wrist)+dist2(ringTip,wrist)+dist2(pinkyTip,wrist))/4;
-      const isFist = (extCount <= 1) && (tipAvgToWrist < 0.85 * palmSize);
-
-      // pinch：拇指食指距离，带 release hysteresis
-      const pinchDist = dist2(thumbTip, indexTip);
-      const pinchOn  = pinchDist < 0.33 * palmSize;
-      const pinchOff = pinchDist > 0.44 * palmSize;
-
-      // palm direction angle（用于“手腕转一圈=树跟一圈”的积分）
-      const palmDir = Math.atan2(middleMCP.y - wrist.y, middleMCP.x - wrist.x);
-
-      return {
-        wrist, palmSize,
-        isOpenPalm, isFist,
-        pinchOn, pinchOff,
-        pinchPos: { x:(thumbTip.x+indexTip.x)/2, y:(thumbTip.y+indexTip.y)/2 },
-        palmDir
-      };
-    }
-
-    async function initHands(){
-      if(hands) return;
-      hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-      });
-      hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: isMobileLike ? 0 : 1,
-        minDetectionConfidence: 0.60,
-        minTrackingConfidence: 0.55
-      });
-      hands.onResults(onHandsResults);
-    }
-
-    async function startCamera(){
-      await initHands();
-      if(camOn) return;
-
-      try{
-        // iOS / mobile: ideal 分辨率别太高，避免卡顿
-        const constraints = {
-          audio: false,
-          video: {
-            facingMode: "user",
-            width: { ideal: isMobileLike ? 640 : 960 },
-            height:{ ideal: isMobileLike ? 480 : 720 }
-          }
-        };
-        camStream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = camStream;
-        await video.play();
-        camOn = true;
-        mpRunning = true;
-        camBtn.textContent = "摄像头：开启";
-        camPill.textContent = "Gesture: on";
-        gesturePill.textContent = "识别：启动中…";
-
-        // reset
-        pinchActive=false; pinchHold=0; pinchRelease=0; openHold=0; fistHold=0;
-        lastWrist=null; lastAngle=null;
-
-        // frame loop
-        const loop = async () => {
-          if(!mpRunning) return;
-          try{
-            await hands.send({ image: video });
-          }catch(e){
-            // 不让它把渲染打断
-            gesturePill.textContent = "识别：异常";
-          }
-          requestAnimationFrame(loop);
-        };
-        requestAnimationFrame(loop);
-      }catch(err){
-        camOn=false; mpRunning=false;
-        camPill.textContent = "Gesture: off";
-        gesturePill.textContent = "识别：权限/设备失败";
-        camBtn.textContent = "摄像头：关闭";
-        showError("摄像头启动失败：\n" + (err?.message || err));
-      }
-    }
-
-    function stopCamera(){
-      mpRunning = false;
-      camOn = false;
-      camBtn.textContent = "摄像头：关闭";
-      camPill.textContent = "Gesture: off";
-      gesturePill.textContent = "识别：-";
-      if(camStream){
-        camStream.getTracks().forEach(t=>t.stop());
-        camStream = null;
-      }
-      video.srcObject = null;
-      lastWrist=null; lastAngle=null;
-    }
-
-    camBtn.addEventListener("click", async ()=>{
-      if(!camOn) await startCamera();
-      else stopCamera();
-    });
-
-    function onHandsResults(results){
-      if(!results || !results.multiHandLandmarks || !results.multiHandLandmarks.length) {
-        gesturePill.textContent = camOn ? "识别：未检测到手" : "识别：-";
-        // 手丢失时不要乱跳状态，但 pinch 如果丢失就当作松开（更安全）
-        if(pinchActive){
-          pinchRelease++;
-          if(pinchRelease>=2){
-            pinchActive=false; pinchRelease=0;
-            // pinch 松开：回散开态（保持背景散开）
-            if(focusedPhoto){
-              focusedPhoto = null;
-            }
-            setMode(MODE.SCATTER);
-          }
-        }
-        lastWrist=null;
-        lastAngle=null;
-        return;
-      }
-
-      const lm = results.multiHandLandmarks[0];
-      const g = classifyGesture(lm);
-
-      // 文字提示（更清楚）
-      let label="-";
-
-      // 优先级：pinch > fist > openPalm
-      // 1) pinch
-      if(!pinchActive){
-        if(g.pinchOn){
-          pinchHold++;
-          if(pinchHold>=2){
-            pinchActive=true;
-            pinchHold=0;
-            pinchRelease=0;
-            label="Pinch 抓取";
-
-            // 进入照片放大态：选中一张照片
-            const picked = pickPhotoByScreen01(g.pinchPos.x, g.pinchPos.y);
-            if(picked){
-              focusedPhoto = picked;
-            }else{
-              // 没选到，就默认选中最近的一张（避免“捏了没反应”）
-              focusedPhoto = photoMeshes[0] || null;
-            }
-            if(focusedPhoto){
-              mode = MODE.PHOTO;
-              setMode(MODE.PHOTO);
-            }else{
-              setMode(MODE.SCATTER);
-            }
-          }
-        }else{
-          pinchHold=0;
-        }
-      }else{
-        // pinch active
-        label="Pinch 抓取中";
-        if(g.pinchOff){
-          pinchRelease++;
-          if(pinchRelease>=2){
-            pinchActive=false;
-            pinchRelease=0;
-            focusedPhoto = null;
-            mode = MODE.SCATTER;
-            setMode(MODE.SCATTER);
-          }
-        }else{
-          pinchRelease=0;
-        }
-      }
-
-      // 2) 非 pinch 状态才处理 fist/openPalm
-      if(!pinchActive){
-        // fist → fold
-        if(g.isFist){
-          fistHold++;
-          openHold=0;
-          label="握拳";
-          if(fistHold>=2){
-            fistHold=2; // clamp
-            mode = MODE.FOLD;
-            setMode(MODE.FOLD);
-          }
-        }else{
-          fistHold=0;
-        }
-
-        // open palm → scatter (and rotation control)
-        if(g.isOpenPalm){
-          openHold++;
-          label = (mode===MODE.SCATTER) ? "五指张开（旋转中）" : "五指张开";
-          if(openHold>=2){
-            openHold=2;
-            mode = MODE.SCATTER;
-            setMode(MODE.SCATTER);
-          }
-        }else{
-          // 不立刻清零：给一点缓冲，减少抖动
-          openHold = Math.max(0, openHold-1);
-        }
-
-        // rotation: only in scatter & openPalm held
-        if(targetMode===MODE.SCATTER && g.isOpenPalm){
-          // wrist move controls yaw/pitch, palmDir controls yaw integration, roll slight
-          const wrist = g.wrist;
-          const dir = g.palmDir;
-
-          if(lastWrist){
-            const dx = (wrist.x - lastWrist.x);
-            const dy = (wrist.y - lastWrist.y);
-
-            // 灵敏度（更跟手）
-            const moveYaw   = dx * (isMobileLike ? 10.0 : 9.0);
-            const movePitch = dy * (isMobileLike ? 7.5 : 6.8);
-
-            orbitYaw   += moveYaw;
-            orbitPitch += movePitch;
-            orbitPitch = clamp(orbitPitch, -0.55, 0.75);
-
-            // 手腕旋转角度积分：转一圈=树跟一圈（更符合你的要求）
-            if(lastAngle!==null){
-              const dAng = unwrapDeltaAngle(lastAngle, dir);
-              orbitYaw += dAng * 0.95;
-
-              // roll 轻微加成（更电影感）
-              rollTarget = clamp(dAng, -0.35, 0.35) * 0.35 + dx * 0.18;
-            }
-          }
-
-          lastWrist = wrist;
-          lastAngle = dir;
-
-          targetRotY = orbitYaw;
-          targetRotX = orbitPitch;
-          targetRotZ = lerp(targetRotZ, rollTarget, 0.35);
-        }else{
-          lastWrist=null;
-          lastAngle=null;
-          targetRotZ = lerp(targetRotZ, 0, 0.10);
-        }
-      }
-
-      gesturePill.textContent = "识别：" + label;
-    }
-
-    /********************
      * Quality
      ********************/
     function applyQuality(q){
@@ -1381,7 +1061,6 @@
       else if(q==="mid"){ needleCount=isMobileLike ? 9000 : 12000; rebuildNeedles(); if(bokehPass){ bokehPass.enabled=true; bokehPass.materialBokeh.uniforms.maxblur.value=isMobileLike ? 0.014 : 0.018; } }
       else { needleCount=isMobileLike ? 12000 : 17500; rebuildNeedles(); if(bokehPass){ bokehPass.enabled=true; bokehPass.materialBokeh.uniforms.maxblur.value=isMobileLike ? 0.016 : 0.022; } }
     }
-
     const qualitySel = $("quality");
     qualitySel.value = isMobileLike ? "mid" : "high";
     applyQuality(qualitySel.value);
@@ -1406,6 +1085,360 @@
     });
 
     /********************
+     * Gesture (MediaPipe Hands + Camera pipeline)
+     ********************/
+    const camBtn = $("camBtn");
+    const camPill = $("camPill");
+    const gesturePill = $("gesturePill");
+    const gestureDbg = $("gestureDbg");
+    const camSelect = $("camSelect");
+    const camGate = $("camGate");
+    const camGateBtn = $("camGateBtn");
+    const camGateClose = $("camGateClose");
+    const video = $("video");
+
+    let camOn=false;
+    let hands=null;
+    let mpCamera=null;
+    let lastWrist=null;
+    let lastAngle=null;
+    let rollTarget=0;
+
+    let pinchActive=false;
+    let pinchHold=0, pinchRelease=0;
+    let openHold=0, fistHold=0;
+
+    function dist2(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
+    function unwrapDeltaAngle(a, b){
+      let d = b - a;
+      while(d > Math.PI) d -= Math.PI*2;
+      while(d < -Math.PI) d += Math.PI*2;
+      return d;
+    }
+    function landmark01(lm, i){ return { x: 1 - lm[i].x, y: lm[i].y }; }
+
+    function classifyGesture(lm){
+      const wrist = landmark01(lm, 0);
+      const indexMCP = landmark01(lm, 5);
+      const middleMCP = landmark01(lm, 9);
+      const thumbTip = landmark01(lm, 4);
+      const indexTip = landmark01(lm, 8);
+      const middleTip= landmark01(lm, 12);
+      const ringTip  = landmark01(lm, 16);
+      const pinkyTip = landmark01(lm, 20);
+
+      const indexPIP = landmark01(lm, 6);
+      const middlePIP= landmark01(lm, 10);
+      const ringPIP  = landmark01(lm, 14);
+      const pinkyPIP = landmark01(lm, 18);
+
+      const palmSize = Math.max(0.06, dist2(wrist, middleMCP));
+      const extThresh = 0.28 * palmSize;
+
+      const idxExt = (indexPIP.y - indexTip.y) > extThresh;
+      const midExt = (middlePIP.y - middleTip.y) > extThresh;
+      const rngExt = (ringPIP.y - ringTip.y) > extThresh;
+      const pkyExt = (pinkyPIP.y - pinkyTip.y) > extThresh;
+
+      const thumbSpread = Math.abs(thumbTip.x - indexMCP.x);
+      const thbExt = thumbSpread > 0.35 * palmSize;
+
+      const extCount = (idxExt?1:0)+(midExt?1:0)+(rngExt?1:0)+(pkyExt?1:0);
+      const spread = dist2(indexTip, pinkyTip);
+      const isOpenPalm = (extCount >= 4) && (thbExt || spread > 0.95*palmSize);
+
+      const tipAvgToWrist =
+        (dist2(indexTip,wrist)+dist2(middleTip,wrist)+dist2(ringTip,wrist)+dist2(pinkyTip,wrist))/4;
+      const isFist = (extCount <= 1) && (tipAvgToWrist < 0.85 * palmSize);
+
+      const pinchDist = dist2(thumbTip, indexTip);
+      const pinchOn  = pinchDist < 0.33 * palmSize;
+      const pinchOff = pinchDist > 0.44 * palmSize;
+
+      const palmDir = Math.atan2(middleMCP.y - wrist.y, middleMCP.x - wrist.x);
+
+      return {
+        wrist, palmSize,
+        isOpenPalm, isFist,
+        pinchOn, pinchOff,
+        pinchPos: { x:(thumbTip.x+indexTip.x)/2, y:(thumbTip.y+indexTip.y)/2 },
+        palmDir,
+        pinchNorm: clamp(pinchDist / palmSize, 0, 2)
+      };
+    }
+
+    async function initHands(){
+      if(hands) return;
+      if(typeof Hands === "undefined") throw new Error("MediaPipe Hands 未加载（Hands is undefined）");
+      hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+      });
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: isMobileLike ? 0 : 1,
+        minDetectionConfidence: 0.60,
+        minTrackingConfidence: 0.55
+      });
+      hands.onResults(onHandsResults);
+    }
+
+    async function refreshCameraList(){
+      if(!navigator.mediaDevices?.enumerateDevices) return;
+      try{
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams = devices.filter(d => d.kind === "videoinput");
+        camSelect.innerHTML = `<option value="">默认摄像头</option>`;
+        cams.forEach((d, i)=>{
+          const opt = document.createElement("option");
+          opt.value = d.deviceId;
+          opt.textContent = d.label || `Camera ${i+1}`;
+          camSelect.appendChild(opt);
+        });
+      }catch{}
+    }
+    refreshCameraList();
+
+    async function startCamera(deviceId=""){
+      await initHands();
+
+      if(!navigator.mediaDevices?.getUserMedia){
+        showError("此浏览器不支持 getUserMedia，无法启用摄像头手势。");
+        return;
+      }
+      if(location.protocol !== "https:" && location.hostname !== "localhost"){
+        showError("摄像头只能在 HTTPS 或 localhost 下使用。请用 GitHub Pages 的 https 链接打开。");
+        return;
+      }
+
+      // iOS/Safari：确保 video 可播放
+      video.muted = true;
+      video.playsInline = true;
+
+      // 先停掉旧的
+      stopCamera();
+
+      // Camera utils 会内部 getUserMedia
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: "user",
+          width: { ideal: isMobileLike ? 640 : 960 },
+          height:{ ideal: isMobileLike ? 480 : 720 },
+          ...(deviceId ? { deviceId: { exact: deviceId } } : {})
+        }
+      };
+
+      try{
+        // camera_utils 的 Camera 会自己请求权限并绑定 stream 到 video
+        mpCamera = new Camera(video, {
+          onFrame: async () => {
+            await hands.send({ image: video });
+          },
+          width: constraints.video.width.ideal,
+          height: constraints.video.height.ideal
+        });
+
+        // 关键：先手动触发一次 getUserMedia（用同样 constraints）以保证权限/设备稳定
+        // 然后把 stream 交给 video（Camera 内部也会取，但这能显著减少“开启但无结果”的情况）
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        await video.play();
+
+        // reset gesture states
+        pinchActive=false; pinchHold=0; pinchRelease=0; openHold=0; fistHold=0;
+        lastWrist=null; lastAngle=null;
+
+        camOn = true;
+        camBtn.textContent = "摄像头：开启";
+        camPill.textContent = "Gesture: on";
+        gesturePill.textContent = "识别：运行中…";
+
+        // 真正开始喂帧
+        await mpCamera.start();
+
+        // 再刷新一次设备列表（部分浏览器需先授权才返回 label）
+        refreshCameraList();
+      }catch(err){
+        stopCamera();
+        showError("摄像头启动失败：\n" + (err?.message || err));
+      }
+    }
+
+    function stopCamera(){
+      camOn = false;
+      camBtn.textContent = "摄像头：关闭";
+      camPill.textContent = "Gesture: off";
+      gesturePill.textContent = "识别：-";
+      gestureDbg.textContent = "dbg:-";
+      lastWrist=null; lastAngle=null;
+
+      try{
+        if(mpCamera && mpCamera.stop) mpCamera.stop();
+      }catch{}
+      mpCamera = null;
+
+      const stream = video.srcObject;
+      if(stream && stream.getTracks){
+        stream.getTracks().forEach(t => t.stop());
+      }
+      video.srcObject = null;
+    }
+
+    camBtn.addEventListener("click", async ()=>{
+      if(!camOn){
+        // 先弹出引导层（让用户主动点击更稳）
+        camGate.style.display = "flex";
+      } else {
+        stopCamera();
+      }
+    });
+
+    camGateBtn.addEventListener("click", async ()=>{
+      camGate.style.display = "none";
+      await startCamera(camSelect.value || "");
+    });
+    camGateClose.addEventListener("click", ()=> camGate.style.display="none");
+
+    camSelect.addEventListener("change", async ()=>{
+      if(!camOn) return;
+      await startCamera(camSelect.value || "");
+    });
+
+    function onHandsResults(results){
+      if(!results || !results.multiHandLandmarks || !results.multiHandLandmarks.length) {
+        gesturePill.textContent = camOn ? "识别：未检测到手" : "识别：-";
+        gestureDbg.textContent = "dbg:nohand";
+        // 丢手时：如果正在 pinch，自动当作松开
+        if(pinchActive){
+          pinchRelease++;
+          if(pinchRelease>=2){
+            pinchActive=false; pinchRelease=0;
+            focusedPhoto = null;
+            mode = MODE.SCATTER;
+            setMode(MODE.SCATTER);
+          }
+        }
+        lastWrist=null;
+        lastAngle=null;
+        return;
+      }
+
+      const lm = results.multiHandLandmarks[0];
+      const g = classifyGesture(lm);
+
+      // 实时调试：pinchNorm 越小越“捏合”
+      gestureDbg.textContent = `dbg: pinch=${g.pinchNorm.toFixed(2)} palm=${g.palmSize.toFixed(3)}`;
+
+      let label="-";
+
+      // 优先级：pinch > fist > openPalm
+      // 1) pinch
+      if(!pinchActive){
+        if(g.pinchOn){
+          pinchHold++;
+          if(pinchHold>=2){
+            pinchActive=true;
+            pinchHold=0;
+            pinchRelease=0;
+            label="Pinch 抓取";
+
+            const picked = pickPhotoByScreen01(g.pinchPos.x, g.pinchPos.y);
+            focusedPhoto = picked || photoMeshes[0] || null;
+
+            if(focusedPhoto){
+              mode = MODE.PHOTO;
+              setMode(MODE.PHOTO);
+            }else{
+              setMode(MODE.SCATTER);
+            }
+          }
+        }else{
+          pinchHold=0;
+        }
+      }else{
+        label="Pinch 抓取中";
+        if(g.pinchOff){
+          pinchRelease++;
+          if(pinchRelease>=2){
+            pinchActive=false;
+            pinchRelease=0;
+            focusedPhoto = null;
+            mode = MODE.SCATTER;
+            setMode(MODE.SCATTER);
+          }
+        }else{
+          pinchRelease=0;
+        }
+      }
+
+      // 2) 非 pinch 才处理 fist/openPalm
+      if(!pinchActive){
+        if(g.isFist){
+          fistHold++;
+          openHold=0;
+          label="握拳";
+          if(fistHold>=2){
+            fistHold=2;
+            mode = MODE.FOLD;
+            setMode(MODE.FOLD);
+          }
+        }else{
+          fistHold=0;
+        }
+
+        if(g.isOpenPalm){
+          openHold++;
+          label = (targetMode===MODE.SCATTER) ? "五指张开（旋转中）" : "五指张开";
+          if(openHold>=2){
+            openHold=2;
+            mode = MODE.SCATTER;
+            setMode(MODE.SCATTER);
+          }
+        }else{
+          openHold = Math.max(0, openHold-1);
+        }
+
+        // rotation: only in scatter & openPalm held
+        if(targetMode===MODE.SCATTER && g.isOpenPalm){
+          const wrist = g.wrist;
+          const dir = g.palmDir;
+
+          if(lastWrist){
+            const dx = (wrist.x - lastWrist.x);
+            const dy = (wrist.y - lastWrist.y);
+
+            // 灵敏度（更跟手）
+            const moveYaw   = dx * (isMobileLike ? 10.0 : 9.0);
+            const movePitch = dy * (isMobileLike ? 7.5 : 6.8);
+
+            orbitYaw   += moveYaw;
+            orbitPitch += movePitch;
+            orbitPitch = clamp(orbitPitch, -0.55, 0.75);
+
+            if(lastAngle!==null){
+              const dAng = unwrapDeltaAngle(lastAngle, dir);
+              orbitYaw += dAng * 0.95;
+              rollTarget = clamp(dAng, -0.35, 0.35) * 0.35 + dx * 0.18;
+            }
+          }
+
+          lastWrist = wrist;
+          lastAngle = dir;
+
+          targetRotY = orbitYaw;
+          targetRotX = orbitPitch;
+          targetRotZ = lerp(targetRotZ, rollTarget, 0.35);
+        }else{
+          lastWrist=null;
+          lastAngle=null;
+          targetRotZ = lerp(targetRotZ, 0, 0.10);
+        }
+      }
+
+      gesturePill.textContent = "识别：" + label;
+    }
+
+    /********************
      * Main loop
      ********************/
     let tPrev = now();
@@ -1424,7 +1457,6 @@
       [photoZoom, photoZoomVel] = springTo(photoZoom, photoZoomVel, zoomTarget, dt, 26, 12);
       photoZoom = clamp(photoZoom, 0, 1);
 
-      // smoother follow
       rotY = lerp(rotY, targetRotY, 1 - Math.exp(-26*dt));
       rotX = lerp(rotX, targetRotX, 1 - Math.exp(-26*dt));
       rotZ = lerp(rotZ, targetRotZ, 1 - Math.exp(-20*dt));
@@ -1478,7 +1510,6 @@
     window.addEventListener("resize", handleResize);
     window.addEventListener("orientationchange", handleResize);
 
-    // init layout + start
     applyLayoutByAspect();
     setMode(MODE.FOLD);
     animate();
